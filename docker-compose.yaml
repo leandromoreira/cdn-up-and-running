@@ -4,9 +4,9 @@ services:
     image: igorbarinov/openresty-nginx-module-vts
     volumes:
       - "./nginx_backend.conf:/usr/local/openresty/nginx/conf/nginx.conf"
-      - "./basic_vts_location.conf:/usr/local/openresty/nginx/conf/basic_vts_location.conf"
-      - "./basic_vts_setup.conf:/usr/local/openresty/nginx/conf/basic_vts_setup.conf"
-      - "./lua_path_setup.conf:/usr/local/openresty/nginx/conf/lua_path_setup.conf"
+      - "./generic_conf/basic_vts_location.conf:/usr/local/openresty/nginx/conf/basic_vts_location.conf"
+      - "./generic_conf/basic_vts_setup.conf:/usr/local/openresty/nginx/conf/basic_vts_setup.conf"
+      - "./generic_conf/lua_path_setup.conf:/usr/local/openresty/nginx/conf/lua_path_setup.conf"
       - "./src/:/lua/src/"
     ports:
       - "8080:8080"
