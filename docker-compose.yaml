@@ -6,6 +6,8 @@ services:
       - "./generic_conf/basic_vts_location.conf:/usr/local/openresty/nginx/conf/basic_vts_location.conf"
       - "./generic_conf/basic_vts_setup.conf:/usr/local/openresty/nginx/conf/basic_vts_setup.conf"
       - "./generic_conf/lua_path_setup.conf:/usr/local/openresty/nginx/conf/lua_path_setup.conf"
+      - "./generic_conf/setup_cache.conf:/usr/local/openresty/nginx/conf/setup_cache.conf"
+      - "./generic_conf/define_cache.conf:/usr/local/openresty/nginx/conf/define_cache.conf"
       - "./src/:/lua/src/"
 
   backend:
