@@ -10,4 +10,4 @@ scrape_configs:
   - job_name: 'prometheus'
     metrics_path: '/status/format/prometheus'
     static_configs:
-      - targets: ['edge:8080', 'backend:8080']
+      - targets: ['loadbalancer:8080', 'edge:8080', 'edge1:8080', 'edge2:8080', 'backend:8080', 'backend1:8080']
