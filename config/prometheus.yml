@@ -1,0 +1,13 @@
+global:
+  scrape_interval:     10s # By default, scrape targets every 15 seconds.
+  evaluation_interval: 10s # By default, scrape targets every 15 seconds.
+  scrape_timeout: 2s # the global default (10s).
+
+  external_labels:
+      monitor: 'CDN'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    metrics_path: '/status/format/prometheus'
+    static_configs:
+      - targets: ['edge:8080', 'backend:8080']

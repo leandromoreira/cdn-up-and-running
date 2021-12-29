@@ -3,11 +3,7 @@ services:
   nginx_base:
     image: igorbarinov/openresty-nginx-module-vts
     volumes:
-      - "./generic_conf/basic_vts_location.conf:/usr/local/openresty/nginx/conf/basic_vts_location.conf"
-      - "./generic_conf/basic_vts_setup.conf:/usr/local/openresty/nginx/conf/basic_vts_setup.conf"
-      - "./generic_conf/lua_path_setup.conf:/usr/local/openresty/nginx/conf/lua_path_setup.conf"
-      - "./generic_conf/setup_cache.conf:/usr/local/openresty/nginx/conf/setup_cache.conf"
-      - "./generic_conf/define_cache.conf:/usr/local/openresty/nginx/conf/define_cache.conf"
+      - "./generic_conf/:/usr/local/openresty/nginx/conf/generic_conf/"
       - "./src/:/lua/src/"
 
   backend:
@@ -28,3 +24,37 @@ services:
       - backend
     ports:
       - "8081:8080"
+
+  prometheus:
+    image: prom/prometheus:v2.17.1
+    container_name: prometheus
+    volumes:
+      - ./config:/etc/prometheus
+      - ./data/prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=24h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    labels:
+      org.label-schema.group: "monitoring"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: monitoring_grafana
+    restart: unless-stopped
+    links:
+      - prometheus
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "9091:3000"
