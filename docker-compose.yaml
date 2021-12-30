@@ -1,7 +1,8 @@
 version: "3.9"
 services:
   nginx_base:
-    image: igorbarinov/openresty-nginx-module-vts
+    build:
+      context: .
     volumes:
       - "./generic_conf/:/usr/local/openresty/nginx/conf/generic_conf/"
       - "./src/:/lua/src/"
