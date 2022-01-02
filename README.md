@@ -2,7 +2,7 @@
 
 The objective of this post is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN, we're going to architect, uses nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
 
-We'll start creating a single node backend and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions around the challenges and trade-offs of building/managing/operating a CDN.
+We'll start creating a single backend example service and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions around the challenges and trade-offs of building/managing/operating a CDN.
 
 ![overview architecture](/img/initial_architecture.webp "overview architecture")
 ![grafana screenshot](/img/4.0.1_metrics.webp "grafana screenshot")
@@ -27,7 +27,7 @@ When a user wants to consume a service, the CDN routing system will deliver the 
 
 ## The CDN stack
 
-While building it, we'll use:
+The CDN will rely on:
 * Linux/GNU/Kernel - a kernel / operating system with outstanding networking capabilities as well as IO excellence.
 * Nginx - an excellent web server that can be used as a reverse proxy providing caching ability.
 * Lua - a simple powerful language to add features into nginx.
