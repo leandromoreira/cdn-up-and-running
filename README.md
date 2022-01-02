@@ -1,8 +1,8 @@
 # CDN Up and Running (WIP)
 
-The objective of this post is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN, we're going to architect, uses nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
+The objective of this repo is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN we're going to architect uses: nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
 
-We'll start creating a single backend example service and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions around the challenges and trade-offs of building/managing/operating a CDN.
+We'll start creating a single backend service and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions regarding the challenges and trade-offs of building/managing/operating a CDN.
 
 ![overview architecture](/img/initial_architecture.webp "overview architecture")
 ![grafana screenshot](/img/4.0.1_metrics.webp "grafana screenshot")
@@ -21,13 +21,13 @@ A CDN can help to improve:
 
 ## How does a CDN work?
 
-CDNs are able to make the services faster by placing the content (a media file, page, javascript, a json response, etc) closer to the users.
+CDNs are able to make the services faster by placing the content (a media file, page, a game, javascript, a json response, etc) closer to the users.
 
-When a user wants to consume a service, the CDN routing system will deliver the "best" node where the content is likely already cached, and closer to the client. Don't worry about the loose use of the word best in here. I hope that throughout the reading, the understanding of what is the best node will be better defined.
+When a user wants to consume a service, the CDN routing system will deliver the "best" node where the content is likely already cached and closer to the client. Don't worry about the loose use of the word best in here. I hope that throughout the reading, the understanding of what is the best node will be elucidated.
 
 ## The CDN stack
 
-The CDN will rely on:
+The CDN we'll build relies on:
 * Linux/GNU/Kernel - a kernel / operating system with outstanding networking capabilities as well as IO excellence.
 * Nginx - an excellent web server that can be used as a reverse proxy providing caching ability.
 * Lua - a simple powerful language to add features into nginx.
