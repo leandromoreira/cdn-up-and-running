@@ -23,7 +23,7 @@ A CDN can help to improve:
 
 CDNs are able to make the services faster by placing the content (a media file, page, a game, javascript, a json response, etc) closer to the users.
 
-When a user wants to consume a service, the CDN routing system will deliver the "best" node where the content is likely already cached and closer to the client. Don't worry about the loose use of the word best in here. I hope that throughout the reading, the understanding of what is the best node will be elucidated.
+When a user wants to consume a service, the CDN routing system will deliver the "best" node where the content is likely **already cached and closer to the client**. Don't worry about the loose use of the word best in here. I hope that throughout the reading, the understanding of what is the best node will be elucidated.
 
 ## The CDN stack
 
