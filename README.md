@@ -37,3 +37,196 @@ The CDN we'll build relies on:
 
 # Origin - the backend service
 
+Origin is the system where the content is created, or at least is the source of it to the CDN. The sample service we're going to build will be a straightforward json API. The backend service could be returning an image, a video, a javascript, an html page, a game, anything you want to deliver to your clients though.
+
+We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua, since we're going to use it a lot here.
+
+**Warning: the backend service could be written in any language you like.**
+
+## Nginx - quick introduction
+
+Nginx is a web server that will behave as you [configure](http://nginx.org/en/docs/beginners_guide.html#conf_structure) it to do so. Its configuration file is filled with [directives](http://nginx.org/en/docs/dirindex.html). A directive its a simple construction to set properties on nginx. There are two types of directives: simple and block (context).
+
+A simple directive is formed by its name followed by parameters ending with a semicolon.
+
+```nginx
+# Syntax: <name> <parameters>;
+# Example
+add_header X-Header AnyValue;
+```
+
+The block directive follows the same pattern but instead of a semicolon it ends surrounded by braces. A block directive that can also have directives within it, it's known as context.
+
+```nginx
+# Syntax: <name> <parameters> <block>
+location / {
+  add_header X-Header AnyValue;
+}
+```
+
+Nginx uses workers (processes) to handle the requests, the [nginx architecture](https://www.aosabook.org/en/nginx.html) plays a crucial role on its performance.
+
+![simplified workers nginx architecture](/img/simplified_workers_nginx_architecture.webp "simplified workers nginx architecture")
+
+**Warning: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
+
+## Backend service conf
+
+Let's walk through the backend json API nginx configuration, I think it'll be much easier to see it in action.
+
+```nginx
+events {
+  worker_connections 1024;
+}
+error_log stderr;
+
+http {
+  access_log /dev/stdout;
+
+  server {
+    listen 8080;
+
+    location / {
+      content_by_lua_block {
+        ngx.header['Content-Type'] = 'application/json'
+        ngx.say('{"service": "api", "value": 42}')
+      }
+    }
+  }
+}
+```
+
+Were you able to understand what this config should do? In any case, let's break it down commenting on each directive.
+
+[`events`](http://nginx.org/en/docs/ngx_core_module.html#events) events provides context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
+```nginx
+events {
+  worker_connections 1024;
+}
+```
+
+[`error_log`](http://nginx.org/en/docs/ngx_core_module.html#error_log) configures logging for error, here we just sending all the errors to the stdout (error)
+
+```nginx
+error_log stderr;
+```
+
+[`http`](http://nginx.org/en/docs/http/ngx_http_core_module.html#http) provides a root context to setup all the http/s servers.
+
+```nginx
+http {}
+```
+
+[`access_log`](http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log) configures the path (and optionally format, etc) for the access logging.
+
+```nginx
+access_log /dev/stdout;
+```
+
+[`server`](http://nginx.org/en/docs/http/ngx_http_core_module.html#server) sets the root configuration for a server, aka where we're going to setup specific behavior to the server.
+
+```nginx
+server {}
+```
+
+Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen) directive controlling the address and/or the port on which the server will accept requets.
+
+```nginx
+listen 8080;
+````
+
+In the server configuration we can specify a route by using the [`location`](http://nginx.org/en/docs/http/ngx_http_core_module.html#location) directive, this will be used to provide configuration at the request path level.
+
+```nginx
+location / {}
+```
+
+Within this location (by the way `/` will handle all the requests) we'll use Lua to create the response, there's a directive called [`content_by_lua_block`](https://github.com/openresty/lua-nginx-module#content_by_lua_block) which provides a context where we use Lua code will run.
+
+```nginx
+content_by_lua_block {}
+```
+
+Finally we'll use Lua and the basic [Nginx Lua API](https://github.com/openresty/lua-nginx-module#nginx-api-for-lua) to set the desired behaviour.
+
+```lua
+-- ngx.header sets the current response header that is to be sent.
+ngx.header['Content-Type'] = 'application/json'
+-- ngx.say will write the response body
+ngx.say('{"service": "api", "value": 42}')
+```
+
+Notice that most of the directives contain their scope, for instance, the `server` is only applicable within the `http` context.
+
+![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
+
+**Warning: we won't comment on each directive we add from now on, we'll only describe the most relevant for the section.**
+
+## CDN 1.0.0 Demo time
+
+Let's see what we did.
+
+```bash
+git checkout 1.0.0 # going back to specific configuration
+docker-compose run --rm --service-ports backend # run the containers exposing the service
+http http://localhost:8080/path/to/my/content.ext # consuming the service, I used httpie but you can use curl or anything you like
+
+# you should see the json response :)
+```
+
+## Adding caching capabilities
+
+In order for the backend service be cacheable we need to setup the caching policy. We'll use the HTTP header [Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) to setup what caching behaviour we want.
+
+```Lua
+-- we want the content to be cached by 10 seconds OR the provided max_age (ex: /path/to/service?max_age=40 for 40 seconds)
+ngx.header['Cache-Control'] = 'public, max-age=' .. (ngx.var.arg_max_age or 10)
+```
+
+And, if you want, make sure to check the returned header header.
+
+```bash
+git checkout 1.0.1 # going back to specific configuration
+docker-compose run --rm --service-ports backend
+http "http://localhost:8080/path/to/my/content.ext?max_age=30"
+```
+
+## Adding metrics
+
+Checking the logging is fine for debugging but once we're with more traffic, it'll be near impossible to to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts) and nginx module summarized metrics in various formats.
+
+```nginx
+vhost_traffic_status_zone shared:vhost_traffic_status:12m;
+vhost_traffic_status_filter_by_set_key $status status::*;
+vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
+```
+
+[`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics, [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) allows us to group metrics by a given metrics (for instance, we decided to group metrics by `status`), and finally [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to creates buckets varying from `0.005` to `10` seconds, these buckets will help us to visualize the metrics in histograms.
+
+```nginx
+location /status {
+  vhost_traffic_status_display;
+  vhost_traffic_status_display_format html;
+}
+```
+
+We also must expose the metrics in a location, we decided to use the `/status` to do it. Demo time, if you want to.
+
+```bash
+git checkout 1.1.0
+docker-compose run --rm --service-ports backend
+# if you go to http://localhost:8080/status/format/html you'll see information about the server 8080
+# notice that VTS also provides other formats such as status/format/prometheus, which will be pretty helpful for us in near future
+```
+
+With metrics we can run (load) tests and see if the assumptions (configuration) matches with reality.
+
+## Refactoring the nginx conf
+
+We'll finis this chapter
+
+```nginx
+
+```
+
+# The CDN - siting in front of the backend
