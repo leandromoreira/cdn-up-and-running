@@ -234,7 +234,7 @@ As the configuration becomes bigger, it also gets harder to comprehend. Nginx of
 
 ```
 
-We can extract location, specific configurations, or anything that makes sense to a file. We can do the same for the Lua code.
+We can extract location, specific configurations, or anything that makes sense to a file. We can do a similar thing for the Lua code as well.
 
 ```diff
        content_by_lua_block {
