@@ -223,10 +223,31 @@ With metrics, we can run (load) tests and see if the assumptions (configuration)
 
 ## Refactoring the nginx conf
 
+As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`] (http://nginx.org/en/docs/ngx_core_module.html#include)that allows us to create partial config files and include them into the root configuration file.
 
-
-```nginx
+```diff
+-    location /status {
+-      vhost_traffic_status_display;
+-      vhost_traffic_status_display_format html;
+-    }
++    include basic_vts_location.conf;
 
 ```
+
+We can extract location, specific configurations, or anything that makes sense to a file. We can do the same for the Lua code.
+
+```diff
+       content_by_lua_block {
+-        ngx.header['Content-Type'] = 'application/json'
+-        ngx.header['Cache-Control'] = 'public, max-age=' .. (ngx.var.arg_max_age or 10)
+-
+-        ngx.say('{"service": "api", "value": 42, "request": "' .. ngx.var.uri .. '"}')
++        local backend = require "backend"
++        backend.generate_content()
+       }
+```
+
+All these modifications were made to improve readability, it also promotes reuse.
+
 
 # The CDN - siting in front of the backend
