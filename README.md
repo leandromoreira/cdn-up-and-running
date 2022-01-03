@@ -223,7 +223,7 @@ With metrics, we can run (load) tests and see if the assumptions (configuration)
 
 ## Refactoring the nginx conf
 
-As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`] (http://nginx.org/en/docs/ngx_core_module.html#include)that allows us to create partial config files and include them into the root configuration file.
+As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`](http://nginx.org/en/docs/ngx_core_module.html#include)that allows us to create partial config files and include them into the root configuration file.
 
 ```diff
 -    location /status {
