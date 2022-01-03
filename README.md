@@ -37,15 +37,15 @@ The CDN we'll build relies on:
 
 # Origin - the backend service
 
-Origin is the system where the content is created, or at least is the source of it to the CDN. The sample service we're going to build will be a straightforward json API. The backend service could be returning an image, a video, a javascript, an html page, a game, anything you want to deliver to your clients though.
+Origin is the system where the content is created. Or at least is the source of it to the CDN. The sample service we're going to build will be a straightforward JSON API. The backend service could be returning an image, a video, a javascript, an HTML page, a game, anything you want to deliver to your clients.
 
-We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua, since we're going to use it a lot here.
+We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua since we're going to use them a lot here.
 
-**Warning: the backend service could be written in any language you like.**
+> **Warning: the backend service could be written in any language you like.**
 
 ## Nginx - quick introduction
 
-Nginx is a web server that will behave as you [configure](http://nginx.org/en/docs/beginners_guide.html#conf_structure) it to do so. Its configuration file is filled with [directives](http://nginx.org/en/docs/dirindex.html). A directive its a simple construction to set properties on nginx. There are two types of directives: simple and block (context).
+Nginx is a web server that will behave as you [configured it](http://nginx.org/en/docs/beginners_guide.html#conf_structure). Its configuration file uses [directives](http://nginx.org/en/docs/dirindex.html) as the main factor to change properties. A directive is a simple construction to set properties in nginx. There are two types of directives: simple and block (context).
 
 A simple directive is formed by its name followed by parameters ending with a semicolon.
 
@@ -55,7 +55,7 @@ A simple directive is formed by its name followed by parameters ending with a se
 add_header X-Header AnyValue;
 ```
 
-The block directive follows the same pattern but instead of a semicolon it ends surrounded by braces. A block directive that can also have directives within it, it's known as context.
+The block directive follows the same pattern, but instead of a semicolon, it ends surrounded by braces. A block directive can also have directives within it. This block is also known as context.
 
 ```nginx
 # Syntax: <name> <parameters> <block>
@@ -64,7 +64,7 @@ location / {
 }
 ```
 
-Nginx uses workers (processes) to handle the requests, the [nginx architecture](https://www.aosabook.org/en/nginx.html) plays a crucial role on its performance.
+Nginx uses workers (processes) to handle the requests. The [nginx architecture](https://www.aosabook.org/en/nginx.html) plays a crucial role in its performance.
 
 ![simplified workers nginx architecture](/img/simplified_workers_nginx_architecture.webp "simplified workers nginx architecture")
 
@@ -72,7 +72,7 @@ Nginx uses workers (processes) to handle the requests, the [nginx architecture](
 
 ## Backend service conf
 
-Let's walk through the backend json API nginx configuration, I think it'll be much easier to see it in action.
+Let's walk through the backend JSON API nginx configuration. I think it'll be much easier to see it in action.
 
 ```nginx
 events {
@@ -96,22 +96,22 @@ http {
 }
 ```
 
-Were you able to understand what this config should do? In any case, let's break it down commenting on each directive.
+Were you able to understand what this config should do? In any case, let's break it down by commenting on each directive.
 
-[`events`](http://nginx.org/en/docs/ngx_core_module.html#events) events provides context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
+[`events`](http://nginx.org/en/docs/ngx_core_module.html#events) events provide context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
 ```nginx
 events {
   worker_connections 1024;
 }
 ```
 
-[`error_log`](http://nginx.org/en/docs/ngx_core_module.html#error_log) configures logging for error, here we just sending all the errors to the stdout (error)
+[`error_log`](http://nginx.org/en/docs/ngx_core_module.html#error_log) configures logging for error. Here we just send all the errors to the stdout (error)
 
 ```nginx
 error_log stderr;
 ```
 
-[`http`](http://nginx.org/en/docs/http/ngx_http_core_module.html#http) provides a root context to setup all the http/s servers.
+[`http`](http://nginx.org/en/docs/http/ngx_http_core_module.html#http) provides a root context to set up all the http/s servers.
 
 ```nginx
 http {}
@@ -129,25 +129,25 @@ access_log /dev/stdout;
 server {}
 ```
 
-Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen) directive controlling the address and/or the port on which the server will accept requets.
+Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen) directive controlling the address and/or the port on which the server will accept requests.
 
 ```nginx
 listen 8080;
 ````
 
-In the server configuration we can specify a route by using the [`location`](http://nginx.org/en/docs/http/ngx_http_core_module.html#location) directive, this will be used to provide configuration at the request path level.
+In the server configuration, we can specify a route by using the [`location`](http://nginx.org/en/docs/http/ngx_http_core_module.html#location) directive. This will be used to provide specific configuration at the request path level.
 
 ```nginx
 location / {}
 ```
 
-Within this location (by the way `/` will handle all the requests) we'll use Lua to create the response, there's a directive called [`content_by_lua_block`](https://github.com/openresty/lua-nginx-module#content_by_lua_block) which provides a context where we use Lua code will run.
+Within this location (by the way, `/` will handle all the requests) we'll use Lua to create the response. There's a directive called [`content_by_lua_block`](https://github.com/openresty/lua-nginx-module#content_by_lua_block) which provides a context where we use Lua code will run.
 
 ```nginx
 content_by_lua_block {}
 ```
 
-Finally we'll use Lua and the basic [Nginx Lua API](https://github.com/openresty/lua-nginx-module#nginx-api-for-lua) to set the desired behaviour.
+Finally, we'll use Lua and the basic [Nginx Lua API](https://github.com/openresty/lua-nginx-module#nginx-api-for-lua) to set the desired behavior.
 
 ```lua
 -- ngx.header sets the current response header that is to be sent.
@@ -176,7 +176,7 @@ http http://localhost:8080/path/to/my/content.ext # consuming the service, I use
 
 ## Adding caching capabilities
 
-In order for the backend service be cacheable we need to setup the caching policy. We'll use the HTTP header [Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) to setup what caching behaviour we want.
+For the backend service to be cacheable we need to set up the caching policy. We'll use the HTTP header [Cache-Control](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control) to setup what caching behavior we want.
 
 ```Lua
 -- we want the content to be cached by 10 seconds OR the provided max_age (ex: /path/to/service?max_age=40 for 40 seconds)
@@ -193,7 +193,7 @@ http "http://localhost:8080/path/to/my/content.ext?max_age=30"
 
 ## Adding metrics
 
-Checking the logging is fine for debugging but once we're with more traffic, it'll be near impossible to to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts) and nginx module summarized metrics in various formats.
+Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be near impossible to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module summarized metrics in various formats.
 
 ```nginx
 vhost_traffic_status_zone shared:vhost_traffic_status:12m;
@@ -201,7 +201,7 @@ vhost_traffic_status_filter_by_set_key $status status::*;
 vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
 ```
 
-[`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics, [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) allows us to group metrics by a given metrics (for instance, we decided to group metrics by `status`), and finally [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to creates buckets varying from `0.005` to `10` seconds, these buckets will help us to visualize the metrics in histograms.
+[`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics, [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) allows us to group metrics by a given metrics (for instance, we decided to group metrics by `status`), and finally [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to visualize the metrics in histograms.
 
 ```nginx
 location /status {
@@ -219,11 +219,11 @@ docker-compose run --rm --service-ports backend
 # notice that VTS also provides other formats such as status/format/prometheus, which will be pretty helpful for us in near future
 ```
 
-With metrics we can run (load) tests and see if the assumptions (configuration) matches with reality.
+With metrics, we can run (load) tests and see if the assumptions (configuration) matches with reality.
 
 ## Refactoring the nginx conf
 
-We'll finis this chapter
+
 
 ```nginx
 
