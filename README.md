@@ -156,7 +156,7 @@ ngx.header['Content-Type'] = 'application/json'
 ngx.say('{"service": "api", "value": 42}')
 ```
 
-Notice that most of the directives contain their scope, for instance, the `location` is only applicable within the `location` (recursive) and `server` context.
+Notice that most of the directives contain their scope, for instance, the `location` is only applicable within the `location` (recursively) and `server` context.
 
 ![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
 
