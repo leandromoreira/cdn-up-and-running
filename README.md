@@ -68,7 +68,7 @@ Nginx uses workers (processes) to handle the requests. The [nginx architecture](
 
 ![simplified workers nginx architecture](/img/simplified_workers_nginx_architecture.webp "simplified workers nginx architecture")
 
-**Warning: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
+> **Warning: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
 
 ## Backend service conf
 
@@ -160,7 +160,7 @@ Notice that most of the directives contain their scope, for instance, the `serve
 
 ![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
 
-**Warning: we won't comment on each directive we add from now on, we'll only describe the most relevant for the section.**
+> **Warning: we won't comment on each directive we add from now on, we'll only describe the most relevant for the section.**
 
 ## CDN 1.0.0 Demo time
 
