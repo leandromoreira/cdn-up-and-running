@@ -45,7 +45,7 @@ We'll use Nginx and Lua to design the backend service. It's a great excuse to in
 
 ## Nginx - quick introduction
 
-Nginx is a web server that will behave as you [configured it](http://nginx.org/en/docs/beginners_guide.html#conf_structure). Its configuration file uses [directives](http://nginx.org/en/docs/dirindex.html) as the main factor to change properties. A directive is a simple construction to set properties in nginx. There are two types of directives: simple and block (context).
+Nginx is a web server that will behave as you [configured it](http://nginx.org/en/docs/beginners_guide.html#conf_structure). Its configuration file uses [directives](http://nginx.org/en/docs/dirindex.html) as the dominant factor. A directive is a simple construction to set properties in nginx. There are two types of directives: simple and block (context).
 
 A simple directive is formed by its name followed by parameters ending with a semicolon.
 
@@ -98,38 +98,38 @@ http {
 
 Were you able to understand what this config should do? In any case, let's break it down by commenting on each directive.
 
-[`events`](http://nginx.org/en/docs/ngx_core_module.html#events) events provide context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
+The [`events`](http://nginx.org/en/docs/ngx_core_module.html#events) provides context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
 ```nginx
 events {
   worker_connections 1024;
 }
 ```
 
-[`error_log`](http://nginx.org/en/docs/ngx_core_module.html#error_log) configures logging for error. Here we just send all the errors to the stdout (error)
+The [`error_log`](http://nginx.org/en/docs/ngx_core_module.html#error_log) configures logging for error. Here we just send all the errors to the stdout (error)
 
 ```nginx
 error_log stderr;
 ```
 
-[`http`](http://nginx.org/en/docs/http/ngx_http_core_module.html#http) provides a root context to set up all the http/s servers.
+The [`http`](http://nginx.org/en/docs/http/ngx_http_core_module.html#http) provides a root context to set up all the http/s servers.
 
 ```nginx
 http {}
 ```
 
-[`access_log`](http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log) configures the path (and optionally format, etc) for the access logging.
+The [`access_log`](http://nginx.org/en/docs/http/ngx_http_log_module.html#access_log) configures the path (and optionally format, etc) for the access logging.
 
 ```nginx
 access_log /dev/stdout;
 ```
 
-[`server`](http://nginx.org/en/docs/http/ngx_http_core_module.html#server) sets the root configuration for a server, aka where we're going to setup specific behavior to the server.
+The [`server`](http://nginx.org/en/docs/http/ngx_http_core_module.html#server) sets the root configuration for a server, aka where we're going to setup specific behavior to the server.
 
 ```nginx
 server {}
 ```
 
-Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen) directive controlling the address and/or the port on which the server will accept requests.
+Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_http_core_module.html#listen) directive controlling the address and/or the port on which the [server will accept requests](http://nginx.org/en/docs/http/request_processing.html).
 
 ```nginx
 listen 8080;
@@ -141,7 +141,7 @@ In the server configuration, we can specify a route by using the [`location`](ht
 location / {}
 ```
 
-Within this location (by the way, `/` will handle all the requests) we'll use Lua to create the response. There's a directive called [`content_by_lua_block`](https://github.com/openresty/lua-nginx-module#content_by_lua_block) which provides a context where we use Lua code will run.
+Within this location (by the way, `/` will handle all the requests) we'll use Lua to create the response. There's a directive called [`content_by_lua_block`](https://github.com/openresty/lua-nginx-module#content_by_lua_block) which provides a context where the Lua code will run.
 
 ```nginx
 content_by_lua_block {}
@@ -156,7 +156,7 @@ ngx.header['Content-Type'] = 'application/json'
 ngx.say('{"service": "api", "value": 42}')
 ```
 
-Notice that most of the directives contain their scope, for instance, the `server` is only applicable within the `http` context.
+Notice that most of the directives contain their scope, for instance, the `location` is only applicable within the `location` (recursive) and `server` context.
 
 ![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
 
@@ -193,7 +193,7 @@ http "http://localhost:8080/path/to/my/content.ext?max_age=30"
 
 ## Adding metrics
 
-Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be near impossible to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module summarized metrics in various formats.
+Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be near impossible to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module that adds metrics measurements.
 
 ```nginx
 vhost_traffic_status_zone shared:vhost_traffic_status:12m;
@@ -201,7 +201,7 @@ vhost_traffic_status_filter_by_set_key $status status::*;
 vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
 ```
 
-[`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics, [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) allows us to group metrics by a given metrics (for instance, we decided to group metrics by `status`), and finally [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to visualize the metrics in histograms.
+The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`). And finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to visualize the metrics in histograms (`p99`, `p50`, etc).
 
 ```nginx
 location /status {
