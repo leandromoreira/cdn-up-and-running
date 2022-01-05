@@ -4,7 +4,6 @@ The objective of this repo is to build a body of knowledge on how CDNs work by c
 
 We'll start creating a single backend service and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions regarding the challenges and trade-offs of building/managing/operating a CDN.
 
-![overview architecture](/img/initial_architecture.webp "overview architecture")
 ![grafana screenshot](/img/4.0.1_metrics.webp "grafana screenshot")
 
 ## What is a CDN?
