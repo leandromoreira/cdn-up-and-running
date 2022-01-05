@@ -27,12 +27,12 @@ When a user wants to consume a service, the CDN routing system will deliver the 
 ## The CDN stack
 
 The CDN we'll build relies on:
-* Linux/GNU/Kernel - a kernel / operating system with outstanding networking capabilities as well as IO excellence.
-* Nginx - an excellent web server that can be used as a reverse proxy providing caching ability.
-* Lua - a simple powerful language to add features into nginx.
-* Prometheus - A system with a dimensional data model, flexible query language, efficient time series database.
-* Grafana - The open source analytics & monitoring
-* Containers - technology to package, deploy, and isolate applications, we'll use docker and docker compose.
+* [`Linux/GNU/Kernel`](https://www.linux.org/) - a kernel / operating system with outstanding networking capabilities as well as IO excellence.
+* [`Nginx`](http://nginx.org/) - an excellent web server that can be used as a reverse proxy providing caching ability.
+* [`Lua(jit)`](https://luajit.org/) - a simple powerful language to add features into nginx.
+* [`Prometheus`](https://prometheus.io/) - A system with a dimensional data model, flexible query language, efficient time series database.
+* [`Grafana`](https://github.com/grafana/grafana) - The open source analytics & monitoring
+* [`Containers`](https://www.docker.com/) - technology to package, deploy, and isolate applications, we'll use docker and docker compose.
 
 # Origin - the backend service
 
