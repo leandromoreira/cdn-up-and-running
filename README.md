@@ -219,6 +219,8 @@ docker-compose run --rm --service-ports backend
 # notice that VTS also provides other formats such as status/format/prometheus, which will be pretty helpful for us in near future
 ```
 
+![nginx vts status page](/img/metrics_status.webp "nginx vts status page")
+
 With metrics, we can run (load) tests and see if the assumptions (configuration) matches with reality.
 
 ## Refactoring the nginx conf
