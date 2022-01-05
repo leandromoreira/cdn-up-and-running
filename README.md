@@ -98,7 +98,7 @@ http {
 
 Were you able to understand what this config should do? In any case, let's break it down by commenting on each directive.
 
-The [`events`](http://nginx.org/en/docs/ngx_core_module.html#events) provides context for connection processing configurations while [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
+The [`events`](http://nginx.org/en/docs/ngx_core_module.html#events) provides context for [connection processing configurations](http://nginx.org/en/docs/events.html), and the [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
 ```nginx
 events {
   worker_connections 1024;
@@ -123,7 +123,7 @@ The [`access_log`](http://nginx.org/en/docs/http/ngx_http_log_module.html#access
 access_log /dev/stdout;
 ```
 
-The [`server`](http://nginx.org/en/docs/http/ngx_http_core_module.html#server) sets the root configuration for a server, aka where we're going to setup specific behavior to the server.
+The [`server`](http://nginx.org/en/docs/http/ngx_http_core_module.html#server) sets the root configuration for a server, aka where we're going to setup specific behavior to the server. You can have multiple `server` blocks per `http` context.
 
 ```nginx
 server {}
@@ -135,7 +135,7 @@ Within the `server` we can set the [`listen`](http://nginx.org/en/docs/http/ngx_
 listen 8080;
 ````
 
-In the server configuration, we can specify a route by using the [`location`](http://nginx.org/en/docs/http/ngx_http_core_module.html#location) directive. This will be used to provide specific configuration at the request path level.
+In the server configuration, we can specify a route by using the [`location`](http://nginx.org/en/docs/http/ngx_http_core_module.html#location) directive. This will be used to provide specific configuration for that matching request path.
 
 ```nginx
 location / {}
@@ -156,7 +156,7 @@ ngx.header['Content-Type'] = 'application/json'
 ngx.say('{"service": "api", "value": 42}')
 ```
 
-Notice that most of the directives contain their scope, for instance, the `location` is only applicable within the `location` (recursively) and `server` context.
+Notice that most of the directives contain their scope. For instance, the `location` is only applicable within the `location` (recursively) and `server` context.
 
 ![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
 
@@ -183,7 +183,7 @@ For the backend service to be cacheable we need to set up the caching policy. We
 ngx.header['Cache-Control'] = 'public, max-age=' .. (ngx.var.arg_max_age or 10)
 ```
 
-And, if you want, make sure to check the returned header header.
+And, if you want, make sure to check the returned response header `Cache-Control`.
 
 ```bash
 git checkout 1.0.1 # going back to specific configuration
@@ -201,7 +201,7 @@ vhost_traffic_status_filter_by_set_key $status status::*;
 vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
 ```
 
-The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`). And finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to visualize the metrics in histograms (`p99`, `p50`, etc).
+The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`). And finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to create percentiles (`p99`, `p50`, etc).
 
 ```nginx
 location /status {
@@ -223,7 +223,7 @@ With metrics, we can run (load) tests and see if the assumptions (configuration)
 
 ## Refactoring the nginx conf
 
-As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`](http://nginx.org/en/docs/ngx_core_module.html#include)that allows us to create partial config files and include them into the root configuration file.
+As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`](http://nginx.org/en/docs/ngx_core_module.html#include) which allows us to create partial config files and include them into the root configuration file.
 
 ```diff
 -    location /status {
@@ -234,7 +234,7 @@ As the configuration becomes bigger, it also gets harder to comprehend. Nginx of
 
 ```
 
-We can extract location, specific configurations, or anything that makes sense to a file. We can do a similar thing for the Lua code as well.
+We can extract location, group configurations per similarities, or anything that makes sense to a file. We can do [a similar thing for the Lua code](https://github.com/openresty/lua-nginx-module#lua_package_path) as well.
 
 ```diff
        content_by_lua_block {
