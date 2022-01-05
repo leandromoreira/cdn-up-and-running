@@ -40,7 +40,7 @@ Origin is the system where the content is created. Or at least is the source of 
 
 We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua since we're going to use them a lot here.
 
-> **Warning: the backend service could be written in any language you like.**
+> **Heads up: the backend service could be written in any language you like.**
 
 ## Nginx - quick introduction
 
@@ -67,7 +67,7 @@ Nginx uses workers (processes) to handle the requests. The [nginx architecture](
 
 ![simplified workers nginx architecture](/img/simplified_workers_nginx_architecture.webp "simplified workers nginx architecture")
 
-> **Warning: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
+> **Heads up: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
 
 ## Backend service conf
 
@@ -159,7 +159,7 @@ Notice that most of the directives contain their scope. For instance, the `locat
 
 ![directive restriction](/img/nginx_directive_restriction.webp "directive restriction")
 
-> **Warning: we won't comment on each directive we add from now on, we'll only describe the most relevant for the section.**
+> **Heads up: we won't comment on each directive we add from now on, we'll only describe the most relevant for the section.**
 
 ## CDN 1.0.0 Demo time
 
