@@ -259,7 +259,7 @@ What we did up to this point has nothing to do with the CDN. Now it's time to st
 
 ![backend edge architecture](/img/edge_backend.webp "backend edge architecture")
 
-There's really nothing fancy, just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content instead we just say that the content is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
+There's really nothing fancy, just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content instead, we just say that the content is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
 
 ```nginx
 upstream backend {
@@ -277,9 +277,9 @@ server {
 }
 ````
 
-> **Heads up**: We also added a new header (X-Cache-Status) to indicate weather the cache was used or not.
-> **HIT**: when the content is in the CDN, the `X-Cache-Status` should return a hit.
-> **MISS**: when the content isn't in the CDN, the `X-Cache-Status` should return a miss.
+We also added a new header (X-Cache-Status) to indicate whether the cache was used or not.
+* **HIT**: when the content is in the CDN, the `X-Cache-Status` should return a hit.
+* **MISS**: when the content isn't in the CDN, the `X-Cache-Status` should return a miss.
 
 ```bash
 git checkout 2.0.0
@@ -292,7 +292,7 @@ http "http://localhost:8081/path/to/my/content.ext"
 
 ## Caching
 
-When we try to fetch content from the edge, the `X-Cache-Status` header never shows up. It seems that we're always doing two requests, we hit the edge and it always tries to fetch the content from the backend, not the way a CDN should work, right?
+When we try to fetch content, the `X-Cache-Status` header never shows up. It seems that the edge node always making an extra request. We hit the edge, and it invariably tries to fetch the content from the backend, not the way a CDN should work, right?
 
 ```log
 backend_1     | 172.22.0.4 - - [05/Jan/2022:17:24:48 +0000] "GET /path/to/my/content.ext HTTP/1.0" 200 70 "-" "HTTPie/2.6.0"
@@ -301,13 +301,13 @@ edge_1        | 172.22.0.1 - - [05/Jan/2022:17:24:48 +0000] "GET /path/to/my/con
 
 The edge is just proxying the clients to the backend. What are we missing? Is there any reason to use a "simple" proxy at all? Well, it does, maybe you want to provide throttling, authentication, authorization, tls termination, or a gateway for multiple services, but that's not what we want.
 
-We need to create a cache area on nginx through the directive [`proxy_cache_path`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path). It's setting up the path where the cached content will reside, the shared memory `key_zone`, and policies such as `inactive`, `max_size`, among other to controll how we want the cache to behave.
+We need to create a cache area on nginx through the directive [`proxy_cache_path`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path). It's setting up the path where the cached content will reside, the shared memory `key_zone`, and policies such as `inactive`, `max_size`, among others, to control how we want the cache to behave.
 
 ```nginx
 proxy_cache_path /cache/ levels=2:2 keys_zone=zone_1:10m max_size=10m inactive=10m use_temp_path=off;
 ```
 
-Once we configured a proper cache, we must also set up the [`proxy_cache`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache) pointing the right zone (via `proxy_cache_path keys_zone=<name>:size`), and the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) linking to the `upstream` we've created.
+Once we've configured a proper cache, we must also set up the [`proxy_cache`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache) pointing to the right zone (via `proxy_cache_path keys_zone=<name>:size`), and the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) linking to the upstream we've created.
 
 ```nginx
 location / {
@@ -318,7 +318,7 @@ location / {
 ```
 
 There is another important aspect of caching which is managed by the directive [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
-When a client requests a content from nginx, it will (highly simplified black box view):
+When a client requests content from nginx, it will (highly simplified):
 
 * Receive the request (let's say: `GET /path/to/something.txt`)
 * Apply a hash md5 function over the cache key value (let's assume that the cache key is the `uri`)
@@ -339,7 +339,7 @@ location / {
 }
 ```
 
-> **Heads up**: Using `uri` as cache key will made the following two requests http://example.a.com/path/to/content.ext and http://example.b.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
+> **Heads up**: Using `uri` as cache key will make the following two requests http://example.a.com/path/to/content.ext and http://example.b.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
 
 Now we can see the caching properly working.
 
