@@ -537,25 +537,25 @@ Now, we see a much better cache efficiency.
 
 ## Fine tunning - cache lock, stale, timeout, network
 
-Using the default configurations for Nginx, linux, and others will be sufice for many small work loads. But when you're goal is more ambitious, you will inefitably need to fine tune the CDN for your need. The process of fine tunning a web server is gigantic, it goes to manage how [`nginx/Linux process sockets`](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/), to [`linux network queing`](https://github.com/leandromoreira/linux-network-performance-parameters), how [`io`](https://serverfault.com/questions/796665/what-are-the-performance-implications-for-millions-of-files-in-a-modern-file-sys) affects the peformance, among other aspects. In fact, there is a lot of symbiotic between the [application and OS](https://nginx.org/en/docs/http/ngx_http_core_module.html#sendfile) with direct implications to the performance.
+Using the default configurations for Nginx, linux, and others will be sufficient for many small workloads. But when you're goal is more ambitious, you will inevitably need to fine-tune the CDN for your need. The process of fine-tuning a web server is gigantic. It goes from managing how [`nginx/Linux process sockets`](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/), to [`linux network queuing`](https://github.com/leandromoreira/linux-network-performance-parameters), how [`io`](https://serverfault.com/questions/796665/what-are-the-performance-implications-for-millions-of-files-in-a-modern-file-sys) affects performance, among other aspects. There is a lot of symbiotic between the [application and OS](https://nginx.org/en/docs/http/ngx_http_core_module.html#sendfile) with direct implications to the performance.
 
-You'll be reading a lot of man pages, mostlying tweaking timeouts and buffers, however the test loop can help you build confidence about your ideas, let's see.
+You'll be reading a lot of man pages, mostly tweaking timeouts and buffers. The test loop can help you build confidence in your ideas, let's see.
 
-* You have an hypothesis or have observed something weird and want to test a parameter value
+* You have a hypothesis or have observed something weird and want to test a parameter value
   * stick to a single set of related parameters each time
 * Set the new value
 * Run the tests
-* Check results against the same server with old parameter
+* Check results against the same server with the old parameter
 
-> **Heads up**: doing tests locally is fine for learning but most of the time you'll only trust what you got in production. Be prepared to do partial deployment, compare old system/config through metrics in production as well.
+> **Heads up**: doing tests locally is fine for learning, but most of the time you'll only trust your production results. Be prepared to do a partial deployment, compare old system/config to newer test parameters.
 
-Did you notice that the errors were all realted to timeout? It seems that the `backend` is taking longer to respond than what the `edge` is willing to wait.
+Did you notice that the errors were all related to timeout? It seems that the `backend` is taking longer to respond than what the `edge` is willing to wait.
 
 ```log
 edge_1        | 2021/12/29 11:52:45 [error] 8#8: *3 upstream timed out (110: Operation timed out) while reading response header from upstream, client: 172.25.0.1, server: , request: "GET /item_34.ext HTTP/1.1", upstream: "http://172.25.0.3:8080/item_34.ext", host: "localhost:8081"
 ```
 
-To solve this problem we can try to increase the proxy timeouts. We're also using a neat directive [`proxy_cache_use_stale`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_use_stale) that `server a stale content` when nginx is dealing with `errors, timeout, or even updating the cache`.
+To solve this problem we can try to increase the proxy timeouts. We're also using a neat directive [`proxy_cache_use_stale`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_use_stale) that `server stale content` when nginx is dealing with `errors, timeout, or even updating the cache`.
 
 ```nginx
 proxy_cache_lock_timeout 2s;
@@ -564,19 +564,19 @@ proxy_send_timeout 2s;
 proxy_cache_use_stale error timeout updating;
 ```
 
-While we were reading about proxy caching something might caught our attention. There's a really useful directive called [`proxy_cache_lock`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_lock) that collapses multiple user requests for a same content into a single request going `upstream` to fetch the content. This is very often known as [coalescing](https://cloud.google.com/cdn/docs/caching#request-coalescing).
+While we were reading about proxy caching something might catch our attention. There's a really useful directive called [`proxy_cache_lock`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_lock) that collapses multiple user requests for the same content into a single request going `upstream` to fetch the content. This is very often known as [coalescing](https://cloud.google.com/cdn/docs/caching#request-coalescing).
 
 ```nginx
 proxy_cache_lock on
 ```
 
-Running the tests we observed that we decrease the timeout errors but we also got less throughput, why? Maybe it's because of lock contention, and the great benefit of this feature it's to avoid the thundering herd in the backend. The good effects of this fine tune might be visible while running in production, with hundreds of edge servers and few backend.
+Running the tests we observed that we decrease the timeout errors but we also got less throughput. Why? Maybe it's because of lock contention, and the great benefit of this feature it's to avoid the thundering herd in the backend. The good effects of this fine-tune might be visible while running in production, with hundreds of edge servers and few backends.
 
 ![grafana result for test 3.0.0](/img/3.0.0_metrics.webp "grafana result for test 3.0.0")
 
 ## From normal to long tail distribution
 
-We've been running load testing assuming a [normal distribution](https://en.wikipedia.org/wiki/Normal_distribution) but that's far from reality. What we realistic might see in production is [most of the requests will be towards a few items](https://en.wikipedia.org/wiki/Long_tail). To closer simulate that, we'll tweak our code to randomly pick a number from 1 to 100 and then decide if it's a popular item or not.
+We've been running load testing assuming a [normal distribution](https://en.wikipedia.org/wiki/Normal_distribution) but that's far from reality. What we might see in production is [most of the requests will be towards a few items](https://en.wikipedia.org/wiki/Long_tail). To closer simulate that, we'll tweak our code to randomly pick a number from 1 to 100 and then decide if it's a popular item or not.
 
 ```lua
 local popular_percentage = 96 -- 96% of users are requesting top 5 content
@@ -600,12 +600,12 @@ end
 Now, let's test again with `proxy_cache_lock` `off` and `on`.
 
 ### Long tail `proxy_cache_lock` off
-![grafana result for test 3.1.0](/img/3.1.0_metrics "grafana result for test 3.1.0")
+![grafana result for test 3.1.0](/img/3.1.0_metrics.webp "grafana result for test 3.1.0")
 ### Long tail `proxy_cache_lock` on
-![grafana result for test 3.1.1](/img/3.1.1_metrics "grafana result for test 3.1.1")
+![grafana result for test 3.1.1](/img/3.1.1_metrics.webp "grafana result for test 3.1.1")
 
 Now it's pretty close, even though the `lock off` is still better marginally. This feature might go to production to show if it's worthy or not.
 
-> **Heads up**: the `proxy_cache_lock_timeout` can be dangeours, if the configure time has passed all the request will go to the backend.
+> **Heads up**: the `proxy_cache_lock_timeout` can be dangerous, if the configured time has passed all the requests will go to the backend.
 
 ## Load Balancing challenges
