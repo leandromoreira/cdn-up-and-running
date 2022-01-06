@@ -355,7 +355,7 @@ http "http://localhost:8081/path/to/my/content.ext"
 
 ## Monitoring Tools
 
-Checking the cache effectiveness by looking at the command line isn't efficient. It's better if we use a tool for that. **Prometheus** will be used to scrap the metrics on all servers, and **Grafana** will show graphics based on the metrics collected by the prometheus.
+Checking the cache effectiveness by looking at the command line isn't efficient. It's better if we use a tool for that. **Prometheus** will be used to scrape metrics on all servers, and **Grafana** will show graphics based on the metrics collected by the prometheus.
 
 ![instrumentalization architecture](/img/metrics_architecture.webp "instrumentalization architecture")
 
@@ -363,7 +363,7 @@ Prometheus configuration will look like this.
 
 ```yaml
 global:
-  scrape_interval:     10s # each 10s prometheus will scrap targets
+  scrape_interval:     10s # each 10s prometheus will scrape targets
   evaluation_interval: 10s
   scrape_timeout: 2s
 
@@ -387,7 +387,7 @@ And set the proper prometheus server.
 
 ## Simulated Work (latency)
 
-The backend server is artificially creating responses, we'll add simulated latency using lua. The ideia is to make it closer to real world situations. We're going to model the latency using [percentiles](https://www.mathsisfun.com/data/percentiles.html).
+The backend server is artificially creating responses. We'll add simulated latency using lua. The idea is to make it closer to real-world situations. We're going to model the latency using [percentiles](https://www.mathsisfun.com/data/percentiles.html).
 
 ```lua
 percentile_config={
@@ -395,7 +395,7 @@ percentile_config={
 }
 ```
 
-We randomly pick a number from 1 to 100, and then we apply another random using the `percentile profile` ranging from the min to the max. Finally we [`sleep`](https://github.com/openresty/lua-nginx-module#ngxsleep) that duration.
+We randomly pick a number from 1 to 100, and then we apply another random using the `percentile profile` ranging from the min to the max. Finally, we [`sleep`](https://github.com/openresty/lua-nginx-module#ngxsleep) that duration.
 
 ```lua
 local current_percentage = random(1, 100)
@@ -404,11 +404,11 @@ local sleep_duration = random(percentile_profile.min, percentile_profile.max)
 sleep(sleep_seconds)
 ```
 
-This model let's us freely try to emulate closer to [real world observed latencies](https://research.google/pubs/pub40801/).
+This model lets us freely try to emulate closer to [real-world observed latencies](https://research.google/pubs/pub40801/).
 
 ## Load Testing
 
-We'll run some load testing to learn more about the solution we're building. Wrk is an HTTP benchmarking tool that you can dynamically configure using lua (again:P). We just pick an random number from 1 to 100 and make a request for that item.
+We'll run some load testing to learn more about the solution we're building. Wrk is an HTTP benchmarking tool that you can dynamically configure using lua (again:P). We pick a random number from 1 to 100 and request that item.
 
 ```lua
 request = function()
@@ -455,13 +455,13 @@ Requests/sec:     62.80
 Transfer/sec:     26.44KB
 ```
 
-Grafana showed that in a given instant **68** request/s were responded by the `edge`. From these requests, **16** went through the `backend`. The [cache effeciency](https://www.cloudflare.com/learning/cdn/what-is-a-cache-hit-ratio/) was **76%**, and 1% of the requests latency was bigger than **3.6s**, 5% observed more than **786ms**, and the median was around **73ms**.
+Grafana showed that in a given instant, **68** requests were responded by the `edge`. From these requests, **16** went through the `backend`. The [cache efficiency](https://www.cloudflare.com/learning/cdn/what-is-a-cache-hit-ratio/) was **76%**, 1% of the request's latency was bigger than **3.6s**, 5% observed more than **786ms**, and the median was around **73ms**.
 
 ![grafana result for 2.2.0](/img/2.2.0_metrics.webp "grafana result for 2.2.0")
 
 ## Learning by testing - let's change the cache ttl (max age)
 
-This project should engage you to experiment, change parmeters values, run load testing, and check the results. I think this can be a great loop to learn by testing. Let's try to see what happens when we change the cache behavior.
+This project should engage you to experiment, change parameters values, run load testing, and check the results. I think this can be a great loop to learn by testing. Let's try to see what happens when we change the cache behavior.
 
 ### 1s
 
@@ -494,13 +494,13 @@ Requests/sec:     27.74
 Transfer/sec:     11.66KB
 ```
 
-We also noticed that the cache hit went down signficantly `(23%)`, and many more requests leaked to the backend.
+We also noticed that the cache hit went down significantly `(23%)`, and many more requests leaked to the backend.
 
 ![grafana result for 2.2.1 1 second](/img/2.2.1_metrics_1s.webp "grafana result for 2.2.1 1 second")
 
 ### 60s
 
-What if instead we increase the caching expire to a whole minute?!
+What if instead we increase the caching expire to a complete minute?!
 
 ```lua
 request = function()
@@ -533,6 +533,6 @@ Now, we see a much better cache efficiency.
 
 ![grafana result for 2.2.1 60 seconds](/img/2.2.1_metrics_60s.webp "grafana result for 2.2.1 60 seconds")
 
-> **Heads up**: caching for longer help to improve performance but at the cost of keeping an old content.
+> **Heads up**: caching for longer helps improve performance but at the cost of keeping old content..
 
 ## Fine tunning - cache lock, stale, timeout, network
