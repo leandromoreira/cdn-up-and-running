@@ -252,3 +252,103 @@ All these modifications were made to improve readability, it also promotes reuse
 
 
 # The CDN - siting in front of the backend
+
+## Proxying
+
+What we did up to this point has nothing to do with the CDN. Now it's time to start building the CDN. For that matter, we'll create another node with nginx, just adding some new directives to connect the `edge` (CDN) node with the `backend` node.
+
+![backend edge architecture](/img/edge_backend.webp "backend edge architecture")
+
+There's really nothing fancy, just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content instead we just say that the content is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
+
+```nginx
+upstream backend {
+  server backend:8080;
+  keepalive 10;  # connection pool for reuse
+}
+
+server {
+  listen 8080;
+
+  location / {
+    proxy_pass http://backend;
+    add_header X-Cache-Status $upstream_cache_status;
+  }
+}
+````
+
+> **Heads up**: We also added a new header (X-Cache-Status) to indicate weather the cache was used or not.
+> **HIT**: when the content is in the CDN, the `X-Cache-Status` should return a hit.
+> **MISS**: when the content isn't in the CDN, the `X-Cache-Status` should return a miss.
+
+```bash
+git checkout 2.0.0
+docker-compose up
+# we still can fetch the content from the backend
+http "http://localhost:8080/path/to/my/content.ext"
+# but we really want to access the content through the edge (CDN)
+http "http://localhost:8081/path/to/my/content.ext"
+```
+
+## Caching
+
+When we try to fetch content from the edge, the `X-Cache-Status` header never shows up. It seems that we're always doing two requests, we hit the edge and it always tries to fetch the content from the backend, not the way a CDN should work, right?
+
+```log
+backend_1     | 172.22.0.4 - - [05/Jan/2022:17:24:48 +0000] "GET /path/to/my/content.ext HTTP/1.0" 200 70 "-" "HTTPie/2.6.0"
+edge_1        | 172.22.0.1 - - [05/Jan/2022:17:24:48 +0000] "GET /path/to/my/content.ext HTTP/1.1" 200 70 "-" "HTTPie/2.6.0"
+````
+
+The edge is just proxying the clients to the backend. What are we missing? Is there any reason to use a "simple" proxy at all? Well, it does, maybe you want to provide throttling, authentication, authorization, tls termination, or a gateway for multiple services, but that's not what we want.
+
+We need to create a cache area on nginx through the directive [`proxy_cache_path`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_path). It's setting up the path where the cached content will reside, the shared memory `key_zone`, and policies such as `inactive`, `max_size`, among other to controll how we want the cache to behave.
+
+```nginx
+proxy_cache_path /cache/ levels=2:2 keys_zone=zone_1:10m max_size=10m inactive=10m use_temp_path=off;
+```
+
+Once we configured a proper cache, we must also set up the [`proxy_cache`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache) pointing the right zone (via `proxy_cache_path keys_zone=<name>:size`), and the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) linking to the `upstream` we've created.
+
+```nginx
+location / {
+    # ...
+    proxy_pass http://backend;
+    proxy_cache zone_1;
+}
+```
+
+There is another important aspect of caching which is managed by the directive [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
+When a client requests a content from nginx, it will (highly simplified black box view):
+
+* Receive the request (let's say: `GET /path/to/something.txt`)
+* Apply a hash md5 function over the cache key value (let's assume that the cache key is the `uri`)
+  * md5("/path/to/something.txt") => `b3c4c5e7dc10b13dc2e3f852e52afcf3`
+    * you can check that on your terminarl `echo -n "/path/to/something.txt" | md5`
+* It checks whether the content (hash `b3c4..`) is cached or not
+* If it's cached, it just returns the object otherwise it fetches the content from the backend
+
+Let's create a variable called `cache_key` using the lua directive [`set_by_lua_block`](https://github.com/openresty/lua-nginx-module#set_by_lua), this will, for each incoming request, fill the `cache_key` with the `uri` value. Beyond that, we also need to update the [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
+
+```nginx
+location / {
+    set_by_lua_block $cache_key {
+      return ngx.var.uri
+    }
+    # ...
+    proxy_cache_key $cache_key;
+}
+```
+
+> **Heads up**: Using `uri` as cache key will made the following two requests http://example.a.com/path/to/content.ext and http://example.b.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
+
+Now we can see the caching properly working.
+
+```bash
+git checkout 2.1.0
+docker-compose up
+http "http://localhost:8081/path/to/my/content.ext"
+# the second request must get the content from the CDN without leaving to the backend
+http "http://localhost:8081/path/to/my/content.ext"
+```
+
+![cache hit header](/img/cache_hit.webp "cache hit header")
