@@ -352,3 +352,187 @@ http "http://localhost:8081/path/to/my/content.ext"
 ```
 
 ![cache hit header](/img/cache_hit.webp "cache hit header")
+
+## Monitoring Tools
+
+Checking the cache effectiveness by looking at the command line isn't efficient. It's better if we use a tool for that. **Prometheus** will be used to scrap the metrics on all servers, and **Grafana** will show graphics based on the metrics collected by the prometheus.
+
+![instrumentalization architecture](/img/metrics_architecture.webp "instrumentalization architecture")
+
+Prometheus configuration will look like this.
+
+```yaml
+global:
+  scrape_interval:     10s # each 10s prometheus will scrap targets
+  evaluation_interval: 10s
+  scrape_timeout: 2s
+
+  external_labels:
+      monitor: 'CDN'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    metrics_path: '/status/format/prometheus'
+    static_configs:
+      - targets: ['edge:8080', 'backend:8080'] # the server list to be scrapped by the scrap_path
+```
+
+Now, we need to add a prometheus source for Grafana.
+
+![grafana source](/img/add_source.webp "grafana source")
+
+And set the proper prometheus server.
+
+![grafana source set](/img/set_source.webp "grafana source set")
+
+## Simulated Work (latency)
+
+The backend server is artificially creating responses, we'll add simulated latency using lua. The ideia is to make it closer to real world situations. We're going to model the latency using [percentiles](https://www.mathsisfun.com/data/percentiles.html).
+
+```lua
+percentile_config={
+    {p=50, min=1, max=20,}, {p=90, min=21, max=50,}, {p=95, min=51, max=150,}, {p=99, min=151, max=500,},
+}
+```
+
+We randomly pick a number from 1 to 100, and then we apply another random using the `percentile profile` ranging from the min to the max. Finally we [`sleep`](https://github.com/openresty/lua-nginx-module#ngxsleep) that duration.
+
+```lua
+local current_percentage = random(1, 100)
+-- let's assume we picked 94
+local sleep_duration = random(percentile_profile.min, percentile_profile.max)
+sleep(sleep_seconds)
+```
+
+This model let's us freely try to emulate closer to [real world observed latencies](https://research.google/pubs/pub40801/).
+
+## Load Testing
+
+We'll run some load testing to learn more about the solution we're building. Wrk is an HTTP benchmarking tool that you can dynamically configure using lua (again:P). We just pick an random number from 1 to 100 and make a request for that item.
+
+```lua
+request = function()
+  local item = "item_" .. random(1, 100)
+
+  return wrk.format(nil, "/" .. item .. ".ext")
+end
+```
+
+The command line will run the tests for 10 minutes (600s), using two threads, and 10 connections.
+
+```bash
+wrk -c10 -t2 -d600s -s ./src/load_tests.lua --latency http://localhost:8081
+```
+
+Of course, you can run this on your machine:
+
+```bash
+docker-compose up
+
+# run the tests
+./load_test.sh
+
+# go check on grafana, how the system is behaving
+http://localhost:9091
+```
+
+The `wrk` output was as shown bellow. There were **37k** requests with **674** failing requests in total.
+
+```bash
+Running 10m test @ http://localhost:8081
+  2 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   218.31ms  236.55ms   1.99s    84.32%
+    Req/Sec    35.14     29.02   202.00     79.15%
+  Latency Distribution
+     50%  162.73ms
+     75%  350.33ms
+     90%  519.56ms
+     99%    1.02s
+  37689 requests in 10.00m, 15.50MB read
+  Non-2xx or 3xx responses: 674
+Requests/sec:     62.80
+Transfer/sec:     26.44KB
+```
+
+Grafana showed that in a given instant **68** request/s were responded by the `edge`. From these requests, **16** went through the `backend`. The [cache effeciency](https://www.cloudflare.com/learning/cdn/what-is-a-cache-hit-ratio/) was **76%**, and 1% of the requests latency was bigger than **3.6s**, 5% observed more than **786ms**, and the median was around **73ms**.
+
+![grafana result for 2.2.0](/img/2.2.0_metrics.webp "grafana result for 2.2.0")
+
+## Learning by testing - let's change the cache ttl (max age)
+
+This project should engage you to experiment, change parmeters values, run load testing, and check the results. I think this can be a great loop to learn by testing. Let's try to see what happens when we change the cache behavior.
+
+### 1s
+
+Using 1s for cache validity.
+
+```lua
+request = function()
+  local item = "item_" .. random(1, 100)
+
+  return wrk.format(nil, "/" .. item .. ".ext?max_age=1")
+end
+```
+
+And run the tests, and the result is: only 16k requests with 773 errors.
+
+```
+Running 10m test @ http://localhost:8081
+  2 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   378.72ms  254.21ms   1.46s    68.40%
+    Req/Sec    15.11      9.98    90.00     74.18%
+  Latency Distribution
+     50%  396.15ms
+     75%  507.22ms
+     90%  664.18ms
+     99%    1.05s
+  16643 requests in 10.00m, 6.83MB read
+  Non-2xx or 3xx responses: 773
+Requests/sec:     27.74
+Transfer/sec:     11.66KB
+```
+
+We also noticed that the cache hit went down signficantly `(23%)`, and many more requests leaked to the backend.
+
+![grafana result for 2.2.1 1 second](/img/2.2.1_metrics_1s.webp "grafana result for 2.2.1 1 second")
+
+### 60s
+
+What if instead we increase the caching expire to a whole minute?!
+
+```lua
+request = function()
+  local item = "item_" .. random(1, 100)
+
+  return wrk.format(nil, "/" .. item .. ".ext?max_age=60")
+end
+```
+
+Again, we run the tests, and the result now is: 45k requests with 551 errors.
+
+```bash
+Running 10m test @ http://localhost:8081
+  2 threads and 10 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   196.27ms  223.43ms   1.79s    84.74%
+    Req/Sec    42.31     34.80   242.00     78.01%
+  Latency Distribution
+     50%   79.67ms
+     75%  321.06ms
+     90%  494.41ms
+     99%    1.01s
+  45695 requests in 10.00m, 18.79MB read
+  Non-2xx or 3xx responses: 551
+Requests/sec:     76.15
+Transfer/sec:     32.06KB
+```
+
+Now, we see a much better cache efficiency.
+
+![grafana result for 2.2.1 60 seconds](/img/2.2.1_metrics_60s.webp "grafana result for 2.2.1 60 seconds")
+
+> **Heads up**: caching for longer help to improve performance but at the cost of keeping an old content.
+
+## Fine tunning - cache lock, stale, timeout, network
