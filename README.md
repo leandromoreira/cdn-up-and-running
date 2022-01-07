@@ -597,6 +597,8 @@ request = function()
 end
 ```
 
+> **Heads-up**: we could model the long tail using [a formula](https://firstmonday.org/ojs/index.php/fm/article/view/1832/1716), but for the purpose of this repo, this extrapolation might be good enough.
+
 Now, let's test again with `proxy_cache_lock` `off` and `on`.
 
 ### Long tail `proxy_cache_lock` off
