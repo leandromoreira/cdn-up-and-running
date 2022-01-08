@@ -529,11 +529,11 @@ Requests/sec:     76.15
 Transfer/sec:     32.06KB
 ```
 
-Now, we see a much better cache efficiency.
+Now, we see a much better **cache efficiency (80% vs 23%)** and **throughput (45k vs 16k requests)**.
 
 ![grafana result for 2.2.1 60 seconds](/img/2.2.1_metrics_60s.webp "grafana result for 2.2.1 60 seconds")
 
-> **Heads up**: caching for longer helps improve performance but at the cost of keeping old content..
+> **Heads up**: caching for longer helps improve performance but at the cost of stale content.
 
 ## Fine tunning - cache lock, stale, timeout, network
 
