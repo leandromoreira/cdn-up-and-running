@@ -1,6 +1,6 @@
 # CDN Up and Running (WIP)
 
-The objective of this repo is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN we're going to architect uses: nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
+The objective of this repo is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN we're going to design uses: nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
 
 We'll start creating a single backend service and expand from there to a multi-node, latency simulated, observable, and testable CDN. In each section, there are discussions regarding the challenges and trade-offs of building/managing/operating a CDN.
 
@@ -20,7 +20,7 @@ A CDN can help to improve:
 
 ## How does a CDN work?
 
-CDNs are able to make the services faster by placing the content (a media file, page, a game, javascript, a json response, etc) closer to the users.
+CDNs are able to make services faster by placing the content (media files, pages, games, javascript, a json response, etc) closer to the users.
 
 When a user wants to consume a service, the CDN routing system will deliver the "best" node where the content is likely **already cached and closer to the client**. Don't worry about the loose use of the word best in here. I hope that throughout the reading, the understanding of what is the best node will be elucidated.
 
@@ -28,10 +28,10 @@ When a user wants to consume a service, the CDN routing system will deliver the 
 
 The CDN we'll build relies on:
 * [`Linux/GNU/Kernel`](https://www.linux.org/) - a kernel / operating system with outstanding networking capabilities as well as IO excellence.
-* [`Nginx`](http://nginx.org/) - an excellent web server that can be used as a reverse proxy providing caching ability.
+* [`Nginx`](http://nginx.org/) - an excellent web server that can be used as a reverse proxy providing caching capability.
 * [`Lua(jit)`](https://luajit.org/) - a simple powerful language to add features into nginx.
 * [`Prometheus`](https://prometheus.io/) - A system with a dimensional data model, flexible query language, efficient time series database.
-* [`Grafana`](https://github.com/grafana/grafana) - The open source analytics & monitoring
+* [`Grafana`](https://github.com/grafana/grafana) - An open source analytics & monitoring tool that plugs with many sources, including prometheus.
 * [`Containers`](https://www.docker.com/) - technology to package, deploy, and isolate applications, we'll use docker and docker compose.
 
 # Origin - the backend service
@@ -44,9 +44,9 @@ We'll use Nginx and Lua to design the backend service. It's a great excuse to in
 
 ## Nginx - quick introduction
 
-Nginx is a web server that will behave as you [configured it](http://nginx.org/en/docs/beginners_guide.html#conf_structure). Its configuration file uses [directives](http://nginx.org/en/docs/dirindex.html) as the dominant factor. A directive is a simple construction to set properties in nginx. There are two types of directives: simple and block (context).
+Nginx is a web server that will follow its [configuration](http://nginx.org/en/docs/beginners_guide.html#conf_structure). The config file uses [directives](http://nginx.org/en/docs/dirindex.html) as the dominant factor. A directive is a simple construction to set properties in nginx. There are two types of directives: **simple and block (context)**.
 
-A simple directive is formed by its name followed by parameters ending with a semicolon.
+A **simple directive** is formed by its name followed by parameters ending with a semicolon.
 
 ```nginx
 # Syntax: <name> <parameters>;
@@ -54,7 +54,7 @@ A simple directive is formed by its name followed by parameters ending with a se
 add_header X-Header AnyValue;
 ```
 
-The block directive follows the same pattern, but instead of a semicolon, it ends surrounded by braces. A block directive can also have directives within it. This block is also known as context.
+The **block directive** follows the same pattern, but instead of a semicolon, it ends surrounded by braces. A block directive can also have directives within it. This block is also known as context.
 
 ```nginx
 # Syntax: <name> <parameters> <block>
@@ -67,7 +67,7 @@ Nginx uses workers (processes) to handle the requests. The [nginx architecture](
 
 ![simplified workers nginx architecture](/img/simplified_workers_nginx_architecture.webp "simplified workers nginx architecture")
 
-> **Heads up: Although this single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
+> **Heads up: Although a single accept queue serving multiple workers is common, there are other models to [load balance the incoming requests](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/).**
 
 ## Backend service conf
 
@@ -220,7 +220,7 @@ docker-compose run --rm --service-ports backend
 
 ![nginx vts status page](/img/metrics_status.webp "nginx vts status page")
 
-With metrics, we can run (load) tests and see if the assumptions (configuration) matches with reality.
+With metrics, we can run (load) tests and see if the configuration changes we made result in a better performance application or not.
 
 ## Refactoring the nginx conf
 
@@ -277,7 +277,7 @@ server {
 }
 ````
 
-We also added a new header (X-Cache-Status) to indicate whether the cache was used or not.
+We also added a new header (X-Cache-Status) to indicate whether the [cache was used or not](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#variables).
 * **HIT**: when the content is in the CDN, the `X-Cache-Status` should return a hit.
 * **MISS**: when the content isn't in the CDN, the `X-Cache-Status` should return a miss.
 
@@ -292,7 +292,7 @@ http "http://localhost:8081/path/to/my/content.ext"
 
 ## Caching
 
-When we try to fetch content, the `X-Cache-Status` header never shows up. It seems that the edge node always making an extra request. We hit the edge, and it invariably tries to fetch the content from the backend, not the way a CDN should work, right?
+When we try to fetch content, the `X-Cache-Status` header is absent. It seems that the edge node is always invariably requesting the backend. This is not the way a CDN should work, right?
 
 ```log
 backend_1     | 172.22.0.4 - - [05/Jan/2022:17:24:48 +0000] "GET /path/to/my/content.ext HTTP/1.0" 200 70 "-" "HTTPie/2.6.0"
@@ -326,8 +326,9 @@ When a client requests content from nginx, it will (highly simplified):
     * you can check that on your terminarl `echo -n "/path/to/something.txt" | md5`
 * It checks whether the content (hash `b3c4..`) is cached or not
 * If it's cached, it just returns the object otherwise it fetches the content from the backend
+  * It also saves locally (in memory and on disk) to avoid future requests
 
-Let's create a variable called `cache_key` using the lua directive [`set_by_lua_block`](https://github.com/openresty/lua-nginx-module#set_by_lua), this will, for each incoming request, fill the `cache_key` with the `uri` value. Beyond that, we also need to update the [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
+Let's create a variable called `cache_key` using the lua directive [`set_by_lua_block`](https://github.com/openresty/lua-nginx-module#set_by_lua). It will, for each incoming request, fill the `cache_key` with the `uri` **value**. Beyond that, we also need to update the [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
 
 ```nginx
 location / {
@@ -339,7 +340,7 @@ location / {
 }
 ```
 
-> **Heads up**: Using `uri` as cache key will make the following two requests http://example.a.com/path/to/content.ext and http://example.b.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
+> **Heads up**: Using `uri` as cache key will make the following two requests http://example.com/path/to/content.ext and http://other.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
 
 Now we can see the caching properly working.
 
@@ -395,12 +396,13 @@ percentile_config={
 }
 ```
 
-We randomly pick a number from 1 to 100, and then we apply another random using the `percentile profile` ranging from the min to the max. Finally, we [`sleep`](https://github.com/openresty/lua-nginx-module#ngxsleep) that duration.
+We randomly pick a number from 1 to 100, and then we apply another random using the respective `percentile profile` ranging from the min to the max. Finally, we [`sleep`](https://github.com/openresty/lua-nginx-module#ngxsleep) that duration.
 
 ```lua
-local current_percentage = random(1, 100)
+local current_percentage = random(1, 100) -- decide with percentile this request will be
 -- let's assume we picked 94
-local sleep_duration = random(percentile_profile.min, percentile_profile.max)
+-- therefore we'll use the percentile_config with p90
+local sleep_duration = random(p90.min, p90.max)
 sleep(sleep_seconds)
 ```
 
@@ -408,7 +410,7 @@ This model lets us freely try to emulate closer to [real-world observed latencie
 
 ## Load Testing
 
-We'll run some load testing to learn more about the solution we're building. Wrk is an HTTP benchmarking tool that you can dynamically configure using lua (again:P). We pick a random number from 1 to 100 and request that item.
+We'll run some load testing to learn more about the solution we're building. Wrk is an HTTP benchmarking tool that you can dynamically configure using lua. We pick a random number from 1 to 100 and request that item.
 
 ```lua
 request = function()
@@ -461,7 +463,7 @@ Grafana showed that in a given instant, **68** requests were responded by the `e
 
 ## Learning by testing - let's change the cache ttl (max age)
 
-This project should engage you to experiment, change parameters values, run load testing, and check the results. I think this can be a great loop to learn by testing. Let's try to see what happens when we change the cache behavior.
+This project should engage you to experiment, change parameters values, run load testing, and check the results. I think this loop can be a great to learn. Let's try to see what happens when we change the cache behavior.
 
 ### 1s
 
@@ -475,7 +477,7 @@ request = function()
 end
 ```
 
-And run the tests, and the result is: only 16k requests with 773 errors.
+Run the tests, and the result is: only 16k requests with 773 errors.
 
 ```
 Running 10m test @ http://localhost:8081
@@ -510,7 +512,7 @@ request = function()
 end
 ```
 
-Again, we run the tests, and the result now is: 45k requests with 551 errors.
+Run the tests, and the result now is: 45k requests with 551 errors.
 
 ```bash
 Running 10m test @ http://localhost:8081
@@ -529,7 +531,7 @@ Requests/sec:     76.15
 Transfer/sec:     32.06KB
 ```
 
-Now, we see a much better **cache efficiency (80% vs 23%)** and **throughput (45k vs 16k requests)**.
+We see a much better **cache efficiency (80% vs 23%)** and **throughput (45k vs 16k requests)**.
 
 ![grafana result for 2.2.1 60 seconds](/img/2.2.1_metrics_60s.webp "grafana result for 2.2.1 60 seconds")
 
@@ -537,7 +539,9 @@ Now, we see a much better **cache efficiency (80% vs 23%)** and **throughput (45
 
 ## Fine tunning - cache lock, stale, timeout, network
 
-Using the default configurations for Nginx, linux, and others will be sufficient for many small workloads. But when you're goal is more ambitious, you will inevitably need to fine-tune the CDN for your need. The process of fine-tuning a web server is gigantic. It goes from managing how [`nginx/Linux process sockets`](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/), to [`linux network queuing`](https://github.com/leandromoreira/linux-network-performance-parameters), how [`io`](https://serverfault.com/questions/796665/what-are-the-performance-implications-for-millions-of-files-in-a-modern-file-sys) affects performance, among other aspects. There is a lot of symbiosis between the [application and OS](https://nginx.org/en/docs/http/ngx_http_core_module.html#sendfile) with direct implications to the performance.
+Using default configurations for Nginx, linux, and others will be sufficient for many small workloads. But when you're goal is more ambitious, you will inevitably need to fine-tune the CDN for your need. 
+
+The process of fine-tuning a web server is gigantic. It goes from managing how [`nginx/Linux process sockets`](https://blog.cloudflare.com/the-sad-state-of-linux-socket-balancing/), to [`linux network queuing`](https://github.com/leandromoreira/linux-network-performance-parameters), how [`io`](https://serverfault.com/questions/796665/what-are-the-performance-implications-for-millions-of-files-in-a-modern-file-sys) affects performance, among other aspects. There is a lot of symbiosis between the [application and OS](https://nginx.org/en/docs/http/ngx_http_core_module.html#sendfile) with direct implications to the performance.
 
 You'll be reading a lot of man pages, mostly tweaking timeouts and buffers. The test loop can help you build confidence in your ideas, let's see.
 
@@ -555,7 +559,7 @@ Did you notice that the errors were all related to timeout? It seems that the `b
 edge_1        | 2021/12/29 11:52:45 [error] 8#8: *3 upstream timed out (110: Operation timed out) while reading response header from upstream, client: 172.25.0.1, server: , request: "GET /item_34.ext HTTP/1.1", upstream: "http://172.25.0.3:8080/item_34.ext", host: "localhost:8081"
 ```
 
-To solve this problem we can try to increase the proxy timeouts. We're also using a neat directive [`proxy_cache_use_stale`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_use_stale) that `server stale content` when nginx is dealing with `errors, timeout, or even updating the cache`.
+To solve this problem we can try to increase the proxy timeouts. We're also using a neat directive [`proxy_cache_use_stale`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_use_stale) that serves `stale content` when nginx is dealing with `errors, timeout, or even updating the cache`.
 
 ```nginx
 proxy_cache_lock_timeout 2s;
@@ -564,7 +568,7 @@ proxy_send_timeout 2s;
 proxy_cache_use_stale error timeout updating;
 ```
 
-While we were reading about proxy caching something might catch our attention. There's a really useful directive called [`proxy_cache_lock`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_lock) that collapses multiple user requests for the same content into a single request going `upstream` to fetch the content. This is very often known as [coalescing](https://cloud.google.com/cdn/docs/caching#request-coalescing).
+While we were reading about proxy caching, something catch our attention. There's a directive called [`proxy_cache_lock`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_lock) that collapses multiple user requests for the same content into a single request going `upstream` to fetch the content at a time. This is very often known as [coalescing](https://cloud.google.com/cdn/docs/caching#request-coalescing).
 
 ```nginx
 proxy_cache_lock on
