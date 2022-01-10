@@ -574,6 +574,8 @@ While we were reading about proxy caching, something catch our attention. There'
 proxy_cache_lock on
 ```
 
+![caching lock](/img/cache_lock.webp "caching lock")
+
 Running the tests we observed that we decrease the timeout errors but we also got less throughput. Why? Maybe it's because of lock contention. The big benefit of this feature it's to avoid the [thundering herd](https://alexpareto.com/2020/06/15/thundering-herds.html) in the backend. Traffic went down from **6k to 3k** and requests from **16 to 8**.
 
 ![grafana result for test 3.0.0](/img/3.0.0_metrics.webp "grafana result for test 3.0.0")
