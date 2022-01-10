@@ -612,8 +612,8 @@ Now, let's test again with `proxy_cache_lock` `off` and `on`.
 ### Long tail `proxy_cache_lock` on
 ![grafana result for test 3.1.1](/img/3.1.1_metrics.webp "grafana result for test 3.1.1")
 
-Now it's pretty close, even though the `lock off` is still better marginally. This feature might go to production to show if it's worthy or not.
+It's pretty close, even though the `lock off` is still better marginally. This feature might go to production to show if it's worthy or not.
 
-> **Heads up**: the `proxy_cache_lock_timeout` can be dangerous, if the configured time has passed all the requests will go to the backend.
+> **Heads up**: the `proxy_cache_lock_timeout` is dangerous but necessary, if the configured time has passed, all the requests will go to the backend.
 
 ## Load Balancing challenges
