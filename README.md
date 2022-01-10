@@ -616,4 +616,137 @@ It's pretty close, even though the `lock off` is still better marginally. This f
 
 > **Heads up**: the `proxy_cache_lock_timeout` is dangerous but necessary, if the configured time has passed, all the requests will go to the backend.
 
-## Load Balancing challenges
+## Routing challenges
+
+We've been testing a single edge but in reality there will be hundreds of nodes. Having more edge nodes is necessary for scalability, resilience and also to provide closer to user responses. Introducing multiples nodes also introduces another challenge, clients need somehow to figure it out which node to fech the content.
+
+There are many ways to overcome this complication, and we'll try to explore some of them.
+
+### Load balancing
+
+A load balancer will spread the client' requests among all the edges.
+
+#### Round Robin
+
+Round robin is a balancing policy that takes a ordered list of edges and goes serving requests picking a server each time and wrapping around when the server list ends.
+
+```nginx
+# on nginx, if we do not specify anything the default policy is weighted round robin
+# http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream
+upstream backend {
+  server edge:8080;
+  server edge1:8080;
+  server edge2:8080;
+}
+
+server {
+  listen 8080;
+
+  location / {
+    proxy_pass http://backend;
+    add_header X-Edge LoadBaalancer;
+  }
+}
+```
+
+What's good about `round robin`? It's simple and the requests are shared almost equally to all servers. There might be a slower servers or responses which may enqueue lots of requests, there is the [`least_conn`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#least_conn) that also takes number of connections into consideration.
+
+What's not good about it? It's not caching-aware, meaning multiple clients will face higher latencies because they're asking the uncached server.
+
+```bash
+# demo time
+git checkout 4.0.0
+docker-compose up
+./load_test.sh
+```
+
+![round robin grafana](/img/4.0.0_metrics.webp "round robin grafana")
+
+> **Heads up**: the load balancer itself here plays a single point of failure role. [Facebook has a great talk explaining](https://www.youtube.com/watch?v=bxhYNfFeVF4) how they created a load balancer that is resilient, maintainable, and scalable.
+
+#### Consistent Hashing
+
+Knowing that the caching awareness is important for a CDN, it's hard to use round robin as it is. There is a balacing method known as [`consistent hashing`](https://en.wikipedia.org/wiki/Consistent_hashing) which tries to solve this problem by choosing a signal (the `uri` for instance) and map it to a hash table, consistently sending all the requests to the same server.
+
+There a directive for that on nginx as well. It's called [`hash`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#hash).
+
+```nginx
+upstream backend {
+  hash $request_uri consistent;
+  server edge:8080;
+  server edge1:8080;
+  server edge2:8080;
+}
+
+server {
+  listen 8080;
+
+  location / {
+    proxy_pass http://backend;
+    add_header X-Edge LoadBaalancer;
+  }
+}
+```
+
+What's good about `consistent hashing`? It's enforces a policy that will increase the changes of a cache hit.
+
+What's not good about it? Imagine a single content (video, game) is peaking and now we have a problem of small number of servers to respond to most of the clients.
+
+> **Heads up** [Consistent Hashing With Bounded Load](https://medium.com/vimeo-engineering-blog/improving-load-balancing-with-a-new-consistent-hashing-algorithm-9f1bd75709ed) born to solve this problem.
+
+```bash
+# demo time
+git checkout 4.0.1
+docker-compose up
+./load_test.sh
+```
+
+![consistent hashing grafana](/img/4.0.1_metrics.webp "consistent hashing grafana")
+
+> **Heads up** Initially I used a lua library because I thought the consistent hashing was only available for comercial nginx.
+
+#### Load balancer bottleneck
+
+There are at least two problems (beyond it being a [SPoF](https://en.wikipedia.org/wiki/Single_point_of_failure)) with a load balancer:
+
+* Network egress - the input/output bandwidth capacity of the load balancer must be at least sum of all its servers.
+  * one could use [DSR](https://www.loadbalancer.org/blog/yahoos-l3-direct-server-return-an-alternative-to-lvs-tun-explored/) or [307](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/307).
+* Distributed edges - there might be nodes geographically sparsed that impose a hard time for a load balancer.
+
+### Network reachability
+
+Many of the problems we saw on the load balancer section are about network reachability. Here we're going to discuss some of the ways we can tackle that, and each one with their ups and downs.
+
+#### API
+
+We could introduce an `API (cdn routing)`, all clients will only know where to find a content (`a specific edge node`) after asking for this API. Clients might need to deal with failover.
+
+> **Heads up** since this solved on the software side, one could mix the best of all worlds: start balacing using `consistent hashing` and then when a given content becames popular uses [a better natural distribution](https://brooker.co.za/blog/2012/01/17/two-random.html)
+
+#### DNS
+
+We could use DNS for that. It looks pretty similar to the API but we're going to rely on dns caching ttl for that. Failover on this case is even harder.
+
+#### Anycast
+
+We could also use a single [Domain/IP, announcing the IP](https://en.wikipedia.org/wiki/Anycast) in all places we have nodes, leave the network routing protocols to find the closest node for a given user.
+
+## Miscellaneous
+
+We didn't talk about lots of important aspects of a CDN:
+
+* Peering - CDNs will host their nodes/content on ISPs, public peering places and private places.
+* Security - CDNs suffers a lots of attacks, DDoS, caching poisoning, and others.
+* Caching strategites - in some cases, instead of pulling the content from the backend, the backend pushes the content to the edge.
+* Tenants/Isolation - CDNs will host multiple clients on the same nodes, isolation is must.
+  * metrics, caching area, configurations (caching policies, backend), and etc.
+* Tokens - CDNs offers some form of token protection for content from clients and to access the backend as well.
+* HTTP Headers - very often (i.e. cors) a client wants to add some headers (sometimes dynamically)
+* Geoblocking - to save money, your CDN will employ some policy regarding the locality of the users.
+* Purging - ability to purge content from cache.
+* Throttling - limit the number of concurrent requests.
+* Edge computing - ability to run code as filter for the content hosted.
+
+## Conclusion
+
+I hope you learned a little bit of how a CDN works. It's a complex endeavour, highly dependent on how close your nodes are to the clients and how well you can distribute the load, taking caching into consideration, to acommodate spikes and low traffics likewise.
