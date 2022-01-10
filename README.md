@@ -1,4 +1,4 @@
-# CDN Up and Running (WIP)
+# CDN Up and Running
 
 The objective of this repo is to build a body of knowledge on how CDNs work by coding one from "scratch". The CDN we're going to design uses: nginx, lua, docker, docker-compose, Prometheus, grafana, and wrk.
 
