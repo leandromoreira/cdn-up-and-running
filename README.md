@@ -457,7 +457,7 @@ Requests/sec:     62.80
 Transfer/sec:     26.44KB
 ```
 
-Grafana showed that in a given instant, **68** requests were responded by the `edge`. From these requests, **16** went through the `backend`. The [cache efficiency](https://www.cloudflare.com/learning/cdn/what-is-a-cache-hit-ratio/) was **76%**, 1% of the request's latency was bigger than **3.6s**, 5% observed more than **786ms**, and the median was around **73ms**.
+Grafana showed that in a given instant, **68** requests were responded by the `edge`. From these requests, **16** went through the `backend`. The [cache efficiency](https://www.cloudflare.com/learning/cdn/what-is-a-cache-hit-ratio/) was **76%**, 1% of the request's latency was longer than **3.6s**, 5% observed more than **786ms**, and the median was around **73ms**.
 
 ![grafana result for 2.2.0](/img/2.2.0_metrics.webp "grafana result for 2.2.0")
 
