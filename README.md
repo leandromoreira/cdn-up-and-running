@@ -340,7 +340,7 @@ location / {
 }
 ```
 
-> **Heads up**: Using `uri` as cache key will make the following two requests http://example.com/path/to/content.ext and http://other.com/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
+> **Heads up**: Using `uri` as cache key will make the following two requests http://example.com/path/to/content.ext and http://example.edu/path/to/content.ext (if they're using the same cache proxy) as if they were a single object. If you do not provide a cache key, nginx will use a reasonable **default value** `$scheme$proxy_host$request_uri`.
 
 Now we can see the caching properly working.
 
