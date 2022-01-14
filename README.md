@@ -8,12 +8,12 @@ We'll start creating a single backend service and expand from there to a multi-n
 
 ## What is a CDN?
 
-A Content Delivery Network is a set of computers, spatially distributed, tasked to provide high availability, **better performance** for systems that can have their **work cached** on this network.
+A Content Delivery Network is a set of computers, spatially distributed in order to provide high availability and **better performance** for systems that have their **work cached** on this network.
 
 ## Why do you need a CDN?
 
-A CDN can help to improve:
-* faster loading times (smoother streaming, instant page to buy, quick friends feed, etc)
+A CDN helps to improve:
+* loading times (smoother streaming, instant page to buy, quick friends feed, etc)
 * accommodate traffic spikes (black friday, popular streaming release, breaking news, etc)
 * decrease costs (traffic offloading)
 * scalability for millions
@@ -36,7 +36,7 @@ The CDN we'll build relies on:
 
 # Origin - the backend service
 
-Origin is the system where the content is created. Or at least is the source of it to the CDN. The sample service we're going to build will be a straightforward JSON API. The backend service could be returning an image, a video, a javascript, an HTML page, a game, anything you want to deliver to your clients.
+Origin is the system where the content is created - or at least it's the source to the CDN. The sample service we're going to build will be a straightforward JSON API. The backend service could be returning an image, video, javascript, HTML page, game, or anything you want to deliver to your clients.
 
 We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua since we're going to use them a lot here.
 
@@ -54,7 +54,7 @@ A **simple directive** is formed by its name followed by parameters ending with 
 add_header X-Header AnyValue;
 ```
 
-The **block directive** follows the same pattern, but instead of a semicolon, it ends surrounded by braces. A block directive can also have directives within it. This block is also known as context.
+The **block directive** follows the same pattern, but instead of a semicolon, it ends surrounded by curly braces. A block directive can also have directives within it. This block is also known as context.
 
 ```nginx
 # Syntax: <name> <parameters> <block>
@@ -71,7 +71,7 @@ Nginx uses workers (processes) to handle the requests. The [nginx architecture](
 
 ## Backend service conf
 
-Let's walk through the backend JSON API nginx configuration. I think it'll be much easier to see it in action.
+Let's walk through the backend JSON API nginx configuration. I think it'll be much easier if we see it in action.
 
 ```nginx
 events {
@@ -95,7 +95,7 @@ http {
 }
 ```
 
-Were you able to understand what this config should do? In any case, let's break it down by commenting on each directive.
+Were you able to understand what this config is doing? In any case, let's break it down by making comments on each directive.
 
 The [`events`](http://nginx.org/en/docs/ngx_core_module.html#events) provides context for [connection processing configurations](http://nginx.org/en/docs/events.html), and the [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
 ```nginx
@@ -192,7 +192,7 @@ http "http://localhost:8080/path/to/my/content.ext?max_age=30"
 
 ## Adding metrics
 
-Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be near impossible to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module that adds metrics measurements.
+Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be nearly impossible to understand how the service is operating. To tackle this case, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module which adds metrics measurements.
 
 ```nginx
 vhost_traffic_status_zone shared:vhost_traffic_status:12m;
@@ -200,7 +200,7 @@ vhost_traffic_status_filter_by_set_key $status status::*;
 vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
 ```
 
-The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`). And finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to create percentiles (`p99`, `p50`, etc).
+The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`) and finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds, because they will help us to create percentiles (`p99`, `p50`, etc).
 
 ```nginx
 location /status {
@@ -209,7 +209,7 @@ location /status {
 }
 ```
 
-We also must expose the metrics in a location, we decided to use the `/status` to do it. Demo time, if you want to.
+We also must expose the metrics in a location. We will use the `/status` to do it.
 
 ```bash
 git checkout 1.1.0
@@ -220,7 +220,7 @@ docker-compose run --rm --service-ports backend
 
 ![nginx vts status page](/img/metrics_status.webp "nginx vts status page")
 
-With metrics, we can run (load) tests and see if the configuration changes we made result in a better performance application or not.
+With metrics, we can run (load) tests and see if the configuration changes we made are resulting in a better performance or not.
 
 ## Refactoring the nginx conf
 
@@ -248,18 +248,18 @@ We can extract location, group configurations per similarities, or anything that
        }
 ```
 
-All these modifications were made to improve readability, it also promotes reuse.
+All these modifications were made to improve readability, but it also promotes reuse.
 
 
 # The CDN - siting in front of the backend
 
 ## Proxying
 
-What we did up to this point has nothing to do with the CDN. Now it's time to start building the CDN. For that matter, we'll create another node with nginx, just adding some new directives to connect the `edge` (CDN) node with the `backend` node.
+What we did so far has nothing to do with the CDN. Now it's time to start building the CDN. For that, we'll create another node with nginx, just adding a few new directives to connect the `edge` (CDN) node with the `backend` node.
 
 ![backend edge architecture](/img/edge_backend.webp "backend edge architecture")
 
-There's really nothing fancy, just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content instead, we just say that the content is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
+There's really nothing fancy here, it's just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content, but instead we provide the content which is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
 
 ```nginx
 upstream backend {
