@@ -8,12 +8,12 @@ We'll start creating a single backend service and expand from there to a multi-n
 
 ## What is a CDN?
 
-A Content Delivery Network is a set of computers, spatially distributed, tasked to provide high availability, **better performance** for systems that can have their **work cached** on this network.
+A Content Delivery Network is a set of computers, spatially distributed in order to provide high availability and **better performance** for systems that have their **work cached** on this network.
 
 ## Why do you need a CDN?
 
-A CDN can help to improve:
-* faster loading times (smoother streaming, instant page to buy, quick friends feed, etc)
+A CDN helps to improve:
+* loading times (smoother streaming, instant page to buy, quick friends feed, etc)
 * accommodate traffic spikes (black friday, popular streaming release, breaking news, etc)
 * decrease costs (traffic offloading)
 * scalability for millions
@@ -36,7 +36,7 @@ The CDN we'll build relies on:
 
 # Origin - the backend service
 
-Origin is the system where the content is created. Or at least is the source of it to the CDN. The sample service we're going to build will be a straightforward JSON API. The backend service could be returning an image, a video, a javascript, an HTML page, a game, anything you want to deliver to your clients.
+Origin is the system where the content is created - or at least it's the source to the CDN. The sample service we're going to build will be a straightforward JSON API. The backend service could be returning an image, video, javascript, HTML page, game, or anything you want to deliver to your clients.
 
 We'll use Nginx and Lua to design the backend service. It's a great excuse to introduce Nginx and Lua since we're going to use them a lot here.
 
@@ -54,7 +54,7 @@ A **simple directive** is formed by its name followed by parameters ending with 
 add_header X-Header AnyValue;
 ```
 
-The **block directive** follows the same pattern, but instead of a semicolon, it ends surrounded by braces. A block directive can also have directives within it. This block is also known as context.
+The **block directive** follows the same pattern, but instead of a semicolon, it ends surrounded by curly braces. A block directive can also have directives within it. This block is also known as context.
 
 ```nginx
 # Syntax: <name> <parameters> <block>
@@ -71,7 +71,7 @@ Nginx uses workers (processes) to handle the requests. The [nginx architecture](
 
 ## Backend service conf
 
-Let's walk through the backend JSON API nginx configuration. I think it'll be much easier to see it in action.
+Let's walk through the backend JSON API nginx configuration. I think it'll be much easier if we see it in action.
 
 ```nginx
 events {
@@ -95,7 +95,7 @@ http {
 }
 ```
 
-Were you able to understand what this config should do? In any case, let's break it down by commenting on each directive.
+Were you able to understand what this config is doing? In any case, let's break it down by making comments on each directive.
 
 The [`events`](http://nginx.org/en/docs/ngx_core_module.html#events) provides context for [connection processing configurations](http://nginx.org/en/docs/events.html), and the [`worker_connections`](http://nginx.org/en/docs/ngx_core_module.html#worker_connections) defines the maximum number of simultaneous connections that can be opened by a worker process.
 ```nginx
