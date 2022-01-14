@@ -729,23 +729,23 @@ We could use DNS for that. It looks pretty similar to the API but we're going to
 
 #### Anycast
 
-We could also use a single [Domain/IP, announcing the IP](https://en.wikipedia.org/wiki/Anycast) in all places we have nodes, leave the network routing protocols to find the closest node for a given user.
+We could also use a single [Domain/IP, announcing the IP](https://en.wikipedia.org/wiki/Anycast) in all places we have nodes, leave the [network routing protocols](https://www.youtube.com/watch?v=O6tCoD5c_U0) to find the closest node for a given user.
 
 ## Miscellaneous
 
 We didn't talk about lots of important aspects of a CDN:
 
-* Peering - CDNs will host their nodes/content on ISPs, public peering places and private places.
+* [Peering](https://www.peeringdb.com/) - CDNs will host their nodes/content on ISPs, public peering places and private places.
 * Security - CDNs suffer a lot of attacks, DDoS, caching poisoning, and others.
 * Caching strategies - in some cases, instead of pulling the content from the backend, the backend pushes the content to the edge.
 * Tenants/Isolation - CDNs will host multiple clients on the same nodes, isolation is a must.
   * metrics, caching area, configurations (caching policies, backend), and etc.
 * Tokens - CDNs offer some form of token protection for content from clients and to access the backend as well.
-* HTTP Headers - very often (i.e. cors) a client wants to add some headers (sometimes dynamically)
-* Geoblocking - to save money, your CDN will employ some policy regarding the locality of the users.
+* HTTP Headers - very often (i.e. [cors](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)) a client wants to add some headers (sometimes dynamically)
+* Geoblocking - to save money or enforce contractual restrictions, your CDN will employ some policy regarding the locality of users.
 * Purging - the ability to purge content from the cache.
-* Throttling - limit the number of concurrent requests.
-* Edge computing - ability to run code as a filter for the content hosted.
+* [Throttling](https://github.com/leandromoreira/nginx-lua-redis-rate-measuring#use-case-distributed-throttling) - limit the number of concurrent requests.
+* [Edge computing](https://leandromoreira.com/2020/04/19/building-an-edge-computing-platform/) - ability to run code as a filter for the content hosted.
 
 ## Conclusion
 
