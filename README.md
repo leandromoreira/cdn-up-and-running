@@ -192,7 +192,7 @@ http "http://localhost:8080/path/to/my/content.ext?max_age=30"
 
 ## Adding metrics
 
-Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be near impossible to understand how the service is operating. To tackle this, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module that adds metrics measurements.
+Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be nearly impossible to understand how the service is operating. To tackle this case, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module which adds metrics measurements.
 
 ```nginx
 vhost_traffic_status_zone shared:vhost_traffic_status:12m;
@@ -200,7 +200,7 @@ vhost_traffic_status_filter_by_set_key $status status::*;
 vhost_traffic_status_histogram_buckets 0.005 0.01 0.05 0.1 0.5 1 5 10; # buckets are in seconds
 ```
 
-The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`). And finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds. These buckets will help us to create percentiles (`p99`, `p50`, etc).
+The [`vhost_traffic_status_zone`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_zone) sets a memory space required for the metrics. The  [`vhost_traffic_status_filter_by_set_key`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_filter_by_set_key) groups metrics by a given variable (for instance, we decided to group metrics by `status`) and finally, the [`vhost_traffic_status_histogram_buckets`](https://github.com/vozlt/nginx-module-vts#vhost_traffic_status_histogram_buckets) provides a way to bucketize the metrics in seconds. We decided to create buckets varying from `0.005` to `10` seconds, because they will help us to create percentiles (`p99`, `p50`, etc).
 
 ```nginx
 location /status {
@@ -209,7 +209,7 @@ location /status {
 }
 ```
 
-We also must expose the metrics in a location, we decided to use the `/status` to do it. Demo time, if you want to.
+We also must expose the metrics in a location. We will use the `/status` to do it.
 
 ```bash
 git checkout 1.1.0
@@ -220,7 +220,7 @@ docker-compose run --rm --service-ports backend
 
 ![nginx vts status page](/img/metrics_status.webp "nginx vts status page")
 
-With metrics, we can run (load) tests and see if the configuration changes we made result in a better performance application or not.
+With metrics, we can run (load) tests and see if the configuration changes we made are resulting in a better performance or not.
 
 ## Refactoring the nginx conf
 
@@ -248,18 +248,18 @@ We can extract location, group configurations per similarities, or anything that
        }
 ```
 
-All these modifications were made to improve readability, it also promotes reuse.
+All these modifications were made to improve readability, but it also promotes reuse.
 
 
 # The CDN - siting in front of the backend
 
 ## Proxying
 
-What we did up to this point has nothing to do with the CDN. Now it's time to start building the CDN. For that matter, we'll create another node with nginx, just adding some new directives to connect the `edge` (CDN) node with the `backend` node.
+What we did so far has nothing to do with the CDN. Now it's time to start building the CDN. For that, we'll create another node with nginx, just adding a few new directives to connect the `edge` (CDN) node with the `backend` node.
 
 ![backend edge architecture](/img/edge_backend.webp "backend edge architecture")
 
-There's really nothing fancy, just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content instead, we just say that the content is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
+There's really nothing fancy here, it's just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content, but instead we provide the content which is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
 
 ```nginx
 upstream backend {
