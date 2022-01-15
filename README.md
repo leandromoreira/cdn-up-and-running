@@ -259,7 +259,7 @@ What we did so far has nothing to do with the CDN. Now it's time to start buildi
 
 ![backend edge architecture](/img/edge_backend.webp "backend edge architecture")
 
-There's really nothing fancy here, it's just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content, but instead we provide the content which is hosted at the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass) and link it to the upstream we just created.
+There's really nothing fancy here, it's just an [`upstream`](http://nginx.org/en/docs/http/ngx_http_upstream_module.html#upstream) block with a server pointing to our `backend` endpoint. In the location, we do not provide the content, but instead we point to the upstream, using the [`proxy_pass`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_pass), we just created.
 
 ```nginx
 upstream backend {
