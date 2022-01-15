@@ -192,7 +192,7 @@ http "http://localhost:8080/path/to/my/content.ext?max_age=30"
 
 ## Adding metrics
 
-Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be nearly impossible to understand how the service is operating. To tackle this case, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), and nginx module which adds metrics measurements.
+Checking the logging is fine for debugging. But once we're reaching more traffic, it'll be nearly impossible to understand how the service is operating. To tackle this case, we're going to use [VTS](https://github.com/vozlt/nginx-module-vts), an nginx module which adds metrics measurements.
 
 ```nginx
 vhost_traffic_status_zone shared:vhost_traffic_status:12m;
