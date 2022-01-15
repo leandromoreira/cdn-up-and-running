@@ -733,19 +733,21 @@ We could also use a single [Domain/IP, announcing the IP](https://en.wikipedia.o
 
 ## Miscellaneous
 
-We didn't talk about lots of important aspects of a CDN:
+We didn't talk about lots of important aspects of a CDN such as:
 
 * [Peering](https://www.peeringdb.com/) - CDNs will host their nodes/content on ISPs, public peering places and private places.
-* Security - CDNs suffer a lot of attacks, DDoS, caching poisoning, and others.
-* Caching strategies - in some cases, instead of pulling the content from the backend, the backend pushes the content to the edge.
-* Tenants/Isolation - CDNs will host multiple clients on the same nodes, isolation is a must.
+* Security - CDNs suffer a lot of attacks, DDoS, [caching poisoning](https://youst.in/posts/cache-poisoning-at-scale/), and others.
+* [Caching strategies](https://netflixtechblog.com/netflix-and-fill-c43a32b490c0) - in some cases, instead of pulling the content from the backend, the backend pushes the content to the edge.
+* [Tenants](https://en.wikipedia.org/wiki/Multitenancy)/Isolation - CDNs will host multiple clients on the same nodes, isolation is a must.
   * metrics, caching area, configurations (caching policies, backend), and etc.
-* Tokens - CDNs offer some form of token protection for content from clients and to access the backend as well.
-* HTTP Headers - very often (i.e. [cors](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)) a client wants to add some headers (sometimes dynamically)
-* Geoblocking - to save money or enforce contractual restrictions, your CDN will employ some policy regarding the locality of users.
-* Purging - the ability to purge content from the cache.
+* Tokens - CDNs offer some form of [token protection](https://en.wikipedia.org/wiki/JSON_Web_Token) for content from unauthorized clients.
+* [Health check (fault detection)](https://youtu.be/1TIzPL4878Q?t=782) - stating whether a node is functional or not.
+* HTTP Headers - very often (i.e. [CORS](https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS)) a client wants to add some headers (sometimes dynamically)
+* [Geoblocking](https://github.com/leev/ngx_http_geoip2_module#example-usage) - to save money or enforce contractual restrictions, your CDN will employ some policy regarding the locality of users.
+* Purging - the ability to [purge content from the cache](https://docs.nginx.com/nginx/admin-guide/content-cache/content-caching/#purging-content-from-the-cache).
 * [Throttling](https://github.com/leandromoreira/nginx-lua-redis-rate-measuring#use-case-distributed-throttling) - limit the number of concurrent requests.
 * [Edge computing](https://leandromoreira.com/2020/04/19/building-an-edge-computing-platform/) - ability to run code as a filter for the content hosted.
+* and so on...
 
 ## Conclusion
 
