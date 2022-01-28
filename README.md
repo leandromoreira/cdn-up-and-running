@@ -222,6 +222,8 @@ docker-compose run --rm --service-ports backend
 
 With metrics, we can run (load) tests and see if the configuration changes we made are resulting in a better performance or not.
 
+> **Heads up**: You can [group the metrics under a custom namespace](https://github.com/leandromoreira/cdn-up-and-running/commit/105f54a27d1b58b88659789ae024d70c89d4a478). This is useful when you have a single location that behaves differently depending on the context.
+
 ## Refactoring the nginx conf
 
 As the configuration becomes bigger, it also gets harder to comprehend. Nginx offers a neat directive called [`include`](http://nginx.org/en/docs/ngx_core_module.html#include) which allows us to create partial config files and include them into the root configuration file.
