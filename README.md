@@ -270,7 +270,7 @@ upstream backend {
 }
 
 server {
-  listen 8080;
+  listen 8081;
 
   location / {
     proxy_pass http://backend;
