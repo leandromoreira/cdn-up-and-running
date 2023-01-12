@@ -685,7 +685,7 @@ server {
 
   location / {
     proxy_pass http://backend;
-    add_header X-Edge LoadBaalancer;
+    add_header X-Edge LoadBalancer;
   }
 }
 ```
