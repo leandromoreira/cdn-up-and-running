@@ -330,7 +330,7 @@ When a client requests content from nginx, it will (highly simplified):
 * If it's cached, it just returns the object otherwise it fetches the content from the backend
   * It also saves locally (in memory and on disk) to avoid future requests
 
-Let's create a variable called `cache_key` using the lua directive [`set_by_lua_block`](https://github.com/openresty/lua-nginx-module#set_by_lua). It will, for each incoming request, fill the `cache_key` with the `uri` **value**. Beyond that, we also need to update the [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
+Let's create a variable called `cache_key` using the lua directive [`set_by_lua_block`](https://github.com/openresty/lua-nginx-module#set_by_lua_block). It will, for each incoming request, fill the `cache_key` with the `uri` **value**. Beyond that, we also need to update the [`proxy_cache_key`](http://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_cache_key).
 
 ```nginx
 location / {
