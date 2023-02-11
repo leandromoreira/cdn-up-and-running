@@ -431,6 +431,7 @@ wrk -c10 -t2 -d600s -s ./src/load_tests.lua --latency http://localhost:8081
 Of course, you can run this on your machine:
 
 ```bash
+git checkout 2.2.0
 docker-compose up
 
 # run the tests
