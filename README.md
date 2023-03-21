@@ -656,6 +656,8 @@ What's good about `round-robin`? The requests are shared almost equally to all s
 
 What's not good about it? It's not caching-aware, meaning multiple clients will face higher latencies because they're asking uncached servers.
 
+> [See more about when to use and avoid `rr` policy.](https://github.com/leandromoreira/cdn-up-and-running/issues/10)
+
 ```bash
 # demo time
 git checkout 4.0.0
