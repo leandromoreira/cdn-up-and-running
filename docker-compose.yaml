@@ -92,6 +92,7 @@ services:
       - backend
       - backend1
       - loadbalancer
+    user: root
 
   grafana:
     image: grafana/grafana:latest
@@ -107,3 +108,4 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
       - "9091:3000"
+    user: "0"
