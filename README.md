@@ -469,7 +469,7 @@ Grafana showed that in a given instant, **68** requests were responded by the `e
 
 ## Learning by testing - let's change the cache ttl (max age)
 
-This project should engage you to experiment, change parameters values, run load testing, and check the results. I think this loop can be a great to learn. Let's try to see what happens when we change the cache behavior.
+This project should engage you to experiment, change parameters values, run load testing, and check the results. I think this loop can be a great way to learn. Let's try to see what happens when we change the cache behavior.
 
 ### 1s
 
